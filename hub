@@ -1,93 +1,235 @@
 --[[
     INTERFACE RAYFIELD - MM2
-    Système de clé : mm2
-    Camera Lock + Shoot Sheriff (touche configurable)
+    Système de clé design moderne (glassmorphism)
+    Clé : mm2
 ]]
 
 -- ============================================================
---  SYSTÈME DE CLÉ
+--  SYSTÈME DE CLÉ - VERSION MODERNE
 -- ============================================================
 local KeySystem = true
 local Key = "mm2"
 
 if KeySystem then
     local function AskForKey()
+        -- Créer un ScreenGui
         local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "KeySystem"
+        screenGui.Name = "KeySystemModern"
         screenGui.Parent = game.Players.LocalPlayer.PlayerGui
-        
+        screenGui.IgnoreGuiInset = true
+        screenGui.ResetOnSpawn = false
+
+        -- Fond flouté
+        local blur = Instance.new("BlurEffect")
+        blur.Size = 10
+        blur.Parent = game.Lighting
+
+        -- Overlay semi-transparent
+        local overlay = Instance.new("Frame")
+        overlay.Size = UDim2.new(1, 0, 1, 0)
+        overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        overlay.BackgroundTransparency = 0.6
+        overlay.BorderSizePixel = 0
+        overlay.Parent = screenGui
+
+        -- Cadre principal (glassmorphism)
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 400, 0, 200)
-        frame.Position = UDim2.new(0.5, -200, 0.5, -100)
-        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        frame.BackgroundTransparency = 0.1
+        frame.Size = UDim2.new(0, 420, 0, 280)
+        frame.Position = UDim2.new(0.5, -210, 0.5, -140)
+        frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        frame.BackgroundTransparency = 0.15
         frame.BorderSizePixel = 0
+        frame.ClipsDescendants = true
         frame.Parent = screenGui
-        
+
+        -- Coins arrondis (via un UICorner)
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 20)
+        corner.Parent = frame
+
+        -- Bordure lumineuse (dégradé)
+        local border = Instance.new("Frame")
+        border.Size = UDim2.new(1, 0, 1, 0)
+        border.Position = UDim2.new(0, 0, 0, 0)
+        border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        border.BackgroundTransparency = 1
+        border.BorderSizePixel = 2
+        border.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        border.BorderTransparency = 0.5
+        border.Parent = frame
+
+        -- Effet de brillance (dégradé animé)
+        local glow = Instance.new("Frame")
+        glow.Size = UDim2.new(1, 0, 0.3, 0)
+        glow.Position = UDim2.new(0, 0, 0, 0)
+        glow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        glow.BackgroundTransparency = 0.8
+        glow.BorderSizePixel = 0
+        glow.Parent = frame
+
+        local glowCorner = Instance.new("UICorner")
+        glowCorner.CornerRadius = UDim.new(0, 20)
+        glowCorner.Parent = glow
+
+        -- Animation de brillance
+        spawn(function()
+            while frame.Parent do
+                for i = 0, 1, 0.02 do
+                    glow.Position = UDim2.new(0, 0, i - 0.3, 0)
+                    wait(0.01)
+                end
+            end
+        end)
+
+        -- Icône clé (emoji ou image)
+        local icon = Instance.new("TextLabel")
+        icon.Size = UDim2.new(0, 60, 0, 60)
+        icon.Position = UDim2.new(0.5, -30, 0.12, 0)
+        icon.BackgroundTransparency = 1
+        icon.Text = "🔑"
+        icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+        icon.TextScaled = true
+        icon.Font = Enum.Font.SourceSansBold
+        icon.Parent = frame
+
+        -- Titre
         local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, 0, 0, 50)
-        title.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        title.Text = "🔑 Entrez la clé"
+        title.Size = UDim2.new(1, 0, 0, 40)
+        title.Position = UDim2.new(0, 0, 0.35, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "Entrez la clé d'accès"
         title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        title.Font = Enum.Font.SourceSansBold
-        title.TextSize = 24
+        title.TextScaled = true
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 22
         title.Parent = frame
-        
+
+        -- Sous-titre
+        local subtitle = Instance.new("TextLabel")
+        subtitle.Size = UDim2.new(1, 0, 0, 25)
+        subtitle.Position = UDim2.new(0, 0, 0.47, 0)
+        subtitle.BackgroundTransparency = 1
+        subtitle.Text = "Réservé aux utilisateurs autorisés"
+        subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+        subtitle.TextScaled = true
+        subtitle.Font = Enum.Font.Gotham
+        subtitle.TextSize = 14
+        subtitle.Parent = frame
+
+        -- Champ de saisie
         local textBox = Instance.new("TextBox")
-        textBox.Size = UDim2.new(0.8, 0, 0, 40)
-        textBox.Position = UDim2.new(0.1, 0, 0.3, 0)
-        textBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        textBox.Size = UDim2.new(0.8, 0, 0, 45)
+        textBox.Position = UDim2.new(0.1, 0, 0.6, 0)
+        textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        textBox.BackgroundTransparency = 0.2
         textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-        textBox.Font = Enum.Font.SourceSans
+        textBox.Font = Enum.Font.Gotham
         textBox.TextSize = 18
-        textBox.PlaceholderText = "Entrez la clé..."
+        textBox.PlaceholderText = "🔑 Clé..."
+        textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
         textBox.Text = ""
+        textBox.ClearTextOnFocus = false
         textBox.Parent = frame
-        
+
+        local textCorner = Instance.new("UICorner")
+        textCorner.CornerRadius = UDim.new(0, 10)
+        textCorner.Parent = textBox
+
+        -- Focus automatique
+        textBox:CaptureFocus()
+
+        -- Bouton Valider
         local validateBtn = Instance.new("TextButton")
-        validateBtn.Size = UDim2.new(0.4, 0, 0, 40)
-        validateBtn.Position = UDim2.new(0.3, 0, 0.6, 0)
-        validateBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+        validateBtn.Size = UDim2.new(0.4, 0, 0, 45)
+        validateBtn.Position = UDim2.new(0.3, 0, 0.78, 0)
+        validateBtn.BackgroundColor3 = Color3.fromRGB(80, 180, 255)
+        validateBtn.BackgroundTransparency = 0.1
         validateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        validateBtn.Font = Enum.Font.SourceSans
+        validateBtn.Font = Enum.Font.GothamBold
         validateBtn.TextSize = 18
-        validateBtn.Text = "Valider"
+        validateBtn.Text = "✓ Valider"
+        validateBtn.AutoButtonColor = false
         validateBtn.Parent = frame
-        
+
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 12)
+        btnCorner.Parent = validateBtn
+
+        -- Effet hover bouton
+        validateBtn.MouseEnter:Connect(function()
+            validateBtn.BackgroundTransparency = 0
+            validateBtn.BackgroundColor3 = Color3.fromRGB(60, 160, 255)
+        end)
+        validateBtn.MouseLeave:Connect(function()
+            validateBtn.BackgroundTransparency = 0.1
+            validateBtn.BackgroundColor3 = Color3.fromRGB(80, 180, 255)
+        end)
+
+        -- Message d'erreur
+        local errorLabel = Instance.new("TextLabel")
+        errorLabel.Size = UDim2.new(1, 0, 0, 30)
+        errorLabel.Position = UDim2.new(0, 0, 0.92, 0)
+        errorLabel.BackgroundTransparency = 1
+        errorLabel.Text = ""
+        errorLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        errorLabel.Font = Enum.Font.Gotham
+        errorLabel.TextSize = 16
+        errorLabel.Visible = false
+        errorLabel.Parent = frame
+
+        -- Variable de retour
         local result = nil
-        
-        validateBtn.MouseButton1Click:Connect(function()
-            local input = textBox.Text
+
+        -- Fonction de validation
+        local function validate(input)
             if input == Key then
                 result = true
                 screenGui:Destroy()
+                blur:Destroy()
             else
-                local errorLabel = Instance.new("TextLabel")
-                errorLabel.Size = UDim2.new(1, 0, 0, 30)
-                errorLabel.Position = UDim2.new(0, 0, 0.8, 0)
-                errorLabel.BackgroundTransparency = 1
-                errorLabel.Text = "❌ Clé incorrecte !"
-                errorLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
-                errorLabel.Font = Enum.Font.SourceSansBold
-                errorLabel.TextSize = 18
-                errorLabel.Parent = frame
+                errorLabel.Text = "❌ Clé incorrecte, réessayez"
+                errorLabel.Visible = true
                 textBox.Text = ""
+                textBox:CaptureFocus()
+                -- Animation de shake
+                textBox.Position = UDim2.new(0.1, 0, 0.6, 0)
+                for i = 1, 3 do
+                    textBox.Position = UDim2.new(0.1, 10, 0.6, 0)
+                    wait(0.05)
+                    textBox.Position = UDim2.new(0.1, -10, 0.6, 0)
+                    wait(0.05)
+                end
+                textBox.Position = UDim2.new(0.1, 0, 0.6, 0)
+            end
+        end
+
+        -- Clic sur le bouton
+        validateBtn.MouseButton1Click:Connect(function()
+            validate(textBox.Text)
+        end)
+
+        -- Appui sur Entrée
+        textBox.FocusLost:Connect(function(enterPressed)
+            if enterPressed then
+                validate(textBox.Text)
             end
         end)
-        
+
+        -- Attendre que l'utilisateur valide
         repeat
             wait()
         until result ~= nil
-        
+
         return result
     end
-    
+
+    -- Appeler la fonction
     local correct = AskForKey()
     if not correct then
         print("❌ Clé incorrecte, arrêt du script")
         return
     end
-    print("✅ Clé correcte ! Chargement...")
+    print("✅ Clé correcte ! Chargement de l'interface...")
 end
 
 -- ============================================================
@@ -100,7 +242,7 @@ if not Rayfield then
 end
 
 -- ============================================================
---  VARIABLES
+--  VARIABLES (identique à la version précédente)
 -- ============================================================
 local player = game.Players.LocalPlayer
 local Players = game:GetService("Players")
@@ -116,8 +258,8 @@ local state = {
     GunESP = false,
     CameraLock = false,
     AutoKill = false,
-    ShootSheriff = false,      -- Nouveau toggle
-    ShootKey = "R",            -- Touche par défaut
+    ShootSheriff = false,
+    ShootKey = "R",
     WalkSpeed = 16,
     JumpPower = 50,
     ESPColor = Color3.fromRGB(255, 0, 0)
@@ -133,9 +275,8 @@ local espObjects = {
 local bodyVelocity = nil
 
 -- ============================================================
---  FONCTIONS UTILITAIRES
+--  FONCTIONS UTILITAIRES (identique)
 -- ============================================================
-
 local function getMurderer()
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
@@ -173,56 +314,31 @@ local function getGuns()
     return guns
 end
 
--- ============================================================
---  FONCTION SHOOT SHERIFF
--- ============================================================
+-- Fonction shoot Sheriff
 local function shootSheriff()
-    -- Vérifier si le joueur a un pistolet
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
     if not gun then
-        Rayfield:Notify({
-            Title = "❌ Pas Sheriff",
-            Content = "Tu n'as pas de pistolet !",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "❌ Pas Sheriff", Content = "Tu n'as pas de pistolet !", Duration = 2 })
         return
     end
-
-    -- Trouver le murderer
     local murderer = getMurderer()
     if not murderer or not murderer.Character or not murderer.Character:FindFirstChild("HumanoidRootPart") then
-        Rayfield:Notify({
-            Title = "❌ Murderer introuvable",
-            Content = "Aucun murderer à viser",
-            Duration = 2
-        })
+        Rayfield:Notify({ Title = "❌ Murderer introuvable", Content = "Aucun murderer à viser", Duration = 2 })
         return
     end
-
-    -- Équiper le pistolet s'il n'est pas déjà équipé
     if gun.Parent ~= player.Character then
         gun.Parent = player.Character
     end
-
-    -- Vise le murderer (Camera Lock actif ou non, on force le regard)
     local targetPos = murderer.Character.HumanoidRootPart.Position
     workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, targetPos)
-
-    -- Tirer : Activer l'outil
     gun:Activate()
-    -- Petit délai pour que le tir soit bien pris en compte
     task.wait(0.05)
     gun:Deactivate()
-
-    Rayfield:Notify({
-        Title = "🔫 Tir !",
-        Content = "Tu as tiré sur " .. murderer.Name,
-        Duration = 1
-    })
+    Rayfield:Notify({ Title = "🔫 Tir !", Content = "Tu as tiré sur " .. murderer.Name, Duration = 1 })
 end
 
 -- ============================================================
---  ESP PERSISTANT
+--  ESP PERSISTANT (identique)
 -- ============================================================
 local function createESP(instance, color, transparency)
     if not instance or not instance.Parent then return nil end
@@ -251,7 +367,6 @@ local function refreshAllESP()
             if h then table.insert(espObjects.Murderer, h) end
         end
     end
-    
     if state.SheriffESP then
         clearESP("Sheriff")
         local sheriff = getSheriff()
@@ -260,7 +375,6 @@ local function refreshAllESP()
             if h then table.insert(espObjects.Sheriff, h) end
         end
     end
-    
     if state.AllESP then
         clearESP("All")
         for _, v in pairs(Players:GetPlayers()) do
@@ -270,7 +384,6 @@ local function refreshAllESP()
             end
         end
     end
-    
     if state.GunESP then
         clearESP("Guns")
         for _, gun in pairs(getGuns()) do
@@ -294,7 +407,6 @@ spawn(function()
     end
 end)
 
--- Gestion respawn
 local function setupCharacterListeners()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
@@ -330,7 +442,7 @@ Players.PlayerAdded:Connect(function(p)
 end)
 
 -- ============================================================
---  INTERFACE
+--  INTERFACE RAYFIELD (identique à la version précédente)
 -- ============================================================
 local Window = Rayfield:CreateWindow({
     Name = "🔪 MM2 HUB",
@@ -563,7 +675,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Boucle Camera Lock
 RunService.RenderStepped:Connect(function()
     if not state.CameraLock then return end
     local murderer = getMurderer()
@@ -572,10 +683,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ========== NOUVEAU : SHOOT SHERIFF ==========
 CombatTab:CreateSection("🎯 Shoot Sheriff")
 
--- Toggle
 CombatTab:CreateToggle({
     Name = "🎯 Shoot Sheriff",
     CurrentValue = state.ShootSheriff,
@@ -590,43 +699,30 @@ CombatTab:CreateToggle({
     end
 })
 
--- Input pour choisir la touche
 CombatTab:CreateInput({
     Name = "⌨️ Touche de tir",
     PlaceholderText = "Entrez une lettre (ex: R)",
     RemoveTextAfterFocusLost = false,
     Callback = function(Text)
         local key = string.upper(string.sub(Text, 1, 1))
-        -- Vérifier que c'est une lettre
         if key:match("%a") then
             state.ShootKey = key
-            Rayfield:Notify({
-                Title = "Touche changée",
-                Content = "Touche de tir : " .. key,
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "Touche changée", Content = "Touche de tir : " .. key, Duration = 2 })
         else
-            Rayfield:Notify({
-                Title = "❌ Erreur",
-                Content = "Entrez une lettre valide",
-                Duration = 2
-            })
+            Rayfield:Notify({ Title = "❌ Erreur", Content = "Entrez une lettre valide", Duration = 2 })
         end
     end
 })
 
--- Détection de la touche de tir
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if not state.ShootSheriff then return end
-    
     local keyName = input.KeyCode.Name
     if keyName == state.ShootKey then
         shootSheriff()
     end
 end)
 
--- ========== AUTO KILL ==========
 CombatTab:CreateToggle({
     Name = "💀 Auto Kill (Murderer)",
     CurrentValue = state.AutoKill,
@@ -638,7 +734,7 @@ CombatTab:CreateToggle({
             spawn(function()
                 while state.AutoKill do
                     wait(0.1)
-                    -- Code à adapter pour le kill automatique
+                    -- Code à adapter
                 end
             end)
         end
@@ -752,4 +848,4 @@ Rayfield:Notify({
     Duration = 5
 })
 
-print("✅ Interface MM2 avec Shoot Sheriff chargée avec succès !")
+print("✅ Interface MM2 avec design de clé moderne chargée avec succès !")
