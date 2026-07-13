@@ -1,0 +1,696 @@
+--[[
+    INTERFACE RAYFIELD - MM2 PERSISTANTE
+    ESP et toggles restent actifs entre les rounds
+    Auto collect / pickup optimisé
+]]
+
+-- Chargement
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+if not Rayfield then return end
+
+local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- ========== VARIABLES PERSISTANTES ==========
+-- (conservent leur état même après respawn)
+local state = {
+    Fly = false,
+    Noclip = false,
+    MurdererESP = false,
+    SheriffESP = false,
+    AllESP = false,
+    GunESP = false,
+    CoinESP = false,
+    Aimbot = false,
+    AutoKill = false,
+    AutoCollect = false,
+    AutoPickup = false,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    ESPColor = Color3.fromRGB(255, 0, 0)  -- rouge par défaut
+}
+
+-- Listes pour stocker les objets ESP
+local espObjects = {
+    Murderer = {},
+    Sheriff = {},
+    All = {},
+    Guns = {},
+    Coins = {}
+}
+
+-- Variables fly
+local bodyVelocity = nil
+
+-- ========== FONCTIONS UTILITAIRES ==========
+
+-- Trouver le murderer (avec fallback)
+local function getMurderer()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
+            if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+-- Trouver le sheriff
+local function getSheriff()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
+            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+-- Récupérer les armes au sol (valides)
+local function getGuns()
+    local guns = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Tool") and v.Name == "Gun" and v.Parent and v.Parent:IsA("Part") then
+            table.insert(guns, v)
+        end
+    end
+    return guns
+end
+
+-- Récupérer les pièces (valides)
+local function getCoins()
+    local coins = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Part") and v.Name == "Coin" and v.Parent then
+            table.insert(coins, v)
+        end
+    end
+    return coins
+end
+
+-- Fonction pour créer un ESP highlight avec gestion de la destruction
+local function createESP(instance, color, transparency)
+    if not instance or not instance.Parent then return nil end
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = instance
+    highlight.FillColor = color or state.ESPColor
+    highlight.FillTransparency = transparency or 0.4
+    highlight.OutlineColor = color or state.ESPColor
+    highlight.OutlineTransparency = 0
+    return highlight
+end
+
+-- Nettoyer une table d'ESP
+local function clearESP(tableName)
+    for _, v in pairs(espObjects[tableName]) do
+        pcall(function() v:Destroy() end)
+    end
+    espObjects[tableName] = {}
+end
+
+-- ========== GESTION DES ESP PERSISTANTS ==========
+
+-- Fonction pour réappliquer tous les ESP actifs sur les nouveaux personnages
+local function refreshAllESP()
+    -- Murderer
+    if state.MurdererESP then
+        clearESP("Murderer")
+        local murderer = getMurderer()
+        if murderer and murderer.Character then
+            local h = createESP(murderer.Character, Color3.fromRGB(255,0,0), 0.4)
+            if h then table.insert(espObjects.Murderer, h) end
+        end
+    end
+    
+    -- Sheriff
+    if state.SheriffESP then
+        clearESP("Sheriff")
+        local sheriff = getSheriff()
+        if sheriff and sheriff.Character then
+            local h = createESP(sheriff.Character, Color3.fromRGB(0,255,0), 0.4)
+            if h then table.insert(espObjects.Sheriff, h) end
+        end
+    end
+    
+    -- All players
+    if state.AllESP then
+        clearESP("All")
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= player and v.Character then
+                local h = createESP(v.Character, Color3.fromRGB(255,255,0), 0.3)
+                if h then table.insert(espObjects.All, h) end
+            end
+        end
+    end
+    
+    -- Guns
+    if state.GunESP then
+        clearESP("Guns")
+        for _, gun in pairs(getGuns()) do
+            if gun.Parent then
+                local h = createESP(gun.Parent, Color3.fromRGB(0,255,255), 0.5)
+                if h then table.insert(espObjects.Guns, h) end
+            end
+        end
+    end
+    
+    -- Coins
+    if state.CoinESP then
+        clearESP("Coins")
+        for _, coin in pairs(getCoins()) do
+            if coin.Parent then
+                local h = createESP(coin, Color3.fromRGB(255,215,0), 0.5)
+                if h then table.insert(espObjects.Coins, h) end
+            end
+        end
+    end
+end
+
+-- Détecter quand un joueur apparaît (pour mettre à jour les ESP)
+local function setupCharacterListeners()
+    -- Pour chaque joueur, quand son personnage apparaît, on refresh les ESP
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then
+            p.CharacterAdded:Connect(function()
+                refreshAllESP()
+            end)
+        end
+    end
+    -- Pour le joueur lui-même, on refresh après son respawn
+    player.CharacterAdded:Connect(function()
+        -- Réappliquer les paramètres de mouvement
+        wait(0.5)
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = state.WalkSpeed
+            player.Character.Humanoid.JumpPower = state.JumpPower
+        end
+        -- Noclip
+        if state.Noclip and player.Character then
+            for _, v in pairs(player.Character:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+        -- Re-fly si actif
+        if state.Fly and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Velocity = Vector3.new(0,0,0)
+            bodyVelocity.Parent = player.Character.HumanoidRootPart
+            player.Character.Humanoid.PlatformStand = true
+        end
+        -- Refresh ESP
+        refreshAllESP()
+    end)
+end
+
+-- Nouveau joueur qui rejoint
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function()
+        refreshAllESP()
+    end)
+    -- On refresh aussi immédiatement
+    wait(0.5)
+    refreshAllESP()
+end)
+
+-- Surveiller les changements (quand un joueur devient murderer/sheriff)
+-- On peut utiliser un timer pour rafraîchir périodiquement (plus simple)
+spawn(function()
+    while wait(2) do
+        if state.MurdererESP or state.SheriffESP or state.AllESP or state.GunESP or state.CoinESP then
+            refreshAllESP()
+        end
+    end
+end)
+
+-- ========== AUTO COLLECT / PICKUP OPTIMISÉ ==========
+
+-- Auto collect pièces (avec vérifications)
+local collectCooldown = 0
+spawn(function()
+    while wait(0.2) do
+        if not state.AutoCollect then continue end
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
+        
+        local hrp = player.Character.HumanoidRootPart
+        local coins = getCoins()
+        local closest = nil
+        local minDist = 50  -- ne chercher que dans un rayon de 50 studs
+        
+        for _, coin in pairs(coins) do
+            if coin and coin.Parent then
+                local dist = (hrp.Position - coin.Position).magnitude
+                if dist < minDist then
+                    minDist = dist
+                    closest = coin
+                end
+            end
+        end
+        
+        if closest and minDist < 50 then
+            -- Se téléporter à proximité de la pièce (pas exactement dessus pour éviter de traverser)
+            hrp.Position = closest.Position + Vector3.new(0, 3, 0)
+            wait(0.1)  -- petit délai pour éviter les téléports en boucle
+        end
+    end
+end)
+
+-- Auto pickup armes (même principe)
+local pickupCooldown = 0
+spawn(function()
+    while wait(0.3) do
+        if not state.AutoPickup then continue end
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
+        
+        local hrp = player.Character.HumanoidRootPart
+        local guns = getGuns()
+        local closest = nil
+        local minDist = 20
+        
+        for _, gun in pairs(guns) do
+            if gun and gun.Parent and gun.Parent:IsA("Part") then
+                local dist = (hrp.Position - gun.Parent.Position).magnitude
+                if dist < minDist then
+                    minDist = dist
+                    closest = gun
+                end
+            end
+        end
+        
+        if closest and minDist < 20 then
+            -- Simuler le ramassage (souvent il suffit de toucher l'objet)
+            -- On téléporte juste au-dessus
+            hrp.Position = closest.Parent.Position + Vector3.new(0, 3, 0)
+            wait(0.2)
+        end
+    end
+end)
+
+-- ========== CRÉATION DE L'INTERFACE ==========
+
+local Window = Rayfield:CreateWindow({
+    Name = "🔪 MM2 HUB",
+    LoadingTitle = "Chargement...",
+    LoadingSubtitle = "Persistant",
+    ConfigurationSaving = { Enabled = true, FolderName = "MM2Config", FileName = "MM2HubPersistent" },
+    KeySystem = false
+})
+
+local MainTab = Window:CreateTab("🏠 Accueil")
+local PlayerTab = Window:CreateTab("👤 Joueur")
+local ESPTab = Window:CreateTab("👁️ ESP")
+local CombatTab = Window:CreateTab("⚔️ Combat")
+local AutoTab = Window:CreateTab("🤖 Auto")
+local MiscTab = Window:CreateTab("🔧 Divers")
+local SettingsTab = Window:CreateTab("⚙️ Paramètres")
+
+-- ========== ACCUEIL ==========
+MainTab:CreateParagraph({
+    Title = "🔪 MM2 HUB Persistant",
+    Content = "ESP et toggles restent actifs après chaque mort/round !\n\n" ..
+    "👤 Joueurs: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+})
+
+MainTab:CreateButton({
+    Name = "📊 Infos jeu",
+    Callback = function()
+        local murderer = getMurderer()
+        local sheriff = getSheriff()
+        local info = "👤 Joueurs: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers ..
+                    "\n🔪 Murderer: " .. (murderer and murderer.Name or "❌ Aucun") ..
+                    "\n🔫 Sheriff: " .. (sheriff and sheriff.Name or "❌ Aucun")
+        Rayfield:Notify({ Title = "📊 Infos", Content = info, Duration = 5 })
+    end
+})
+
+-- ========== JOUEUR ==========
+PlayerTab:CreateSection("🏃 Mouvement")
+
+PlayerTab:CreateSlider({
+    Name = "Vitesse",
+    Range = {16, 200},
+    Increment = 1,
+    CurrentValue = state.WalkSpeed,
+    Flag = "WalkSpeed",
+    Callback = function(Value)
+        state.WalkSpeed = Value
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Saut",
+    Range = {50, 300},
+    Increment = 1,
+    CurrentValue = state.JumpPower,
+    Flag = "JumpPower",
+    Callback = function(Value)
+        state.JumpPower = Value
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.JumpPower = Value
+        end
+    end
+})
+
+PlayerTab:CreateSection("🛡️ Protection")
+
+PlayerTab:CreateToggle({
+    Name = "✈️ Fly",
+    CurrentValue = state.Fly,
+    Flag = "FlyToggle",
+    Callback = function(Value)
+        state.Fly = Value
+        if Value then
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Velocity = Vector3.new(0,0,0)
+                bodyVelocity.Parent = player.Character.HumanoidRootPart
+                player.Character.Humanoid.PlatformStand = true
+            end
+        else
+            if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+            if player.Character then
+                player.Character.Humanoid.PlatformStand = false
+            end
+        end
+        Rayfield:Notify({ Title = "Fly", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+-- Contrôles Fly (WASD + Espace/Shift)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not state.Fly then return end
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = player.Character.HumanoidRootPart
+    local direction = Vector3.new(0,0,0)
+    if input.KeyCode == Enum.KeyCode.W then direction = direction + hrp.CFrame.LookVector
+    elseif input.KeyCode == Enum.KeyCode.S then direction = direction - hrp.CFrame.LookVector
+    elseif input.KeyCode == Enum.KeyCode.A then direction = direction - hrp.CFrame.RightVector
+    elseif input.KeyCode == Enum.KeyCode.D then direction = direction + hrp.CFrame.RightVector
+    elseif input.KeyCode == Enum.KeyCode.Space then direction = direction + Vector3.new(0,1,0)
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then direction = direction - Vector3.new(0,1,0)
+    end
+    if direction ~= Vector3.new(0,0,0) and bodyVelocity then
+        bodyVelocity.Velocity = direction * 50
+    end
+end)
+
+PlayerTab:CreateToggle({
+    Name = "🚫 Noclip",
+    CurrentValue = state.Noclip,
+    Flag = "NoclipToggle",
+    Callback = function(Value)
+        state.Noclip = Value
+        if player.Character then
+            for _, v in pairs(player.Character:GetChildren()) do
+                if v:IsA("BasePart") then v.CanCollide = not Value end
+            end
+        end
+        Rayfield:Notify({ Title = "Noclip", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+-- ========== ESP ==========
+ESPTab:CreateSection("👁️ ESP Joueurs")
+
+ESPTab:CreateToggle({
+    Name = "🔪 ESP Murderer",
+    CurrentValue = state.MurdererESP,
+    Flag = "MurdererESP",
+    Callback = function(Value)
+        state.MurdererESP = Value
+        if Value then refreshAllESP()
+        else clearESP("Murderer") end
+        Rayfield:Notify({ Title = "ESP Murderer", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+ESPTab:CreateToggle({
+    Name = "🔫 ESP Sheriff",
+    CurrentValue = state.SheriffESP,
+    Flag = "SheriffESP",
+    Callback = function(Value)
+        state.SheriffESP = Value
+        if Value then refreshAllESP()
+        else clearESP("Sheriff") end
+        Rayfield:Notify({ Title = "ESP Sheriff", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+ESPTab:CreateToggle({
+    Name = "👁️ ESP Tous les joueurs",
+    CurrentValue = state.AllESP,
+    Flag = "AllESP",
+    Callback = function(Value)
+        state.AllESP = Value
+        if Value then refreshAllESP()
+        else clearESP("All") end
+        Rayfield:Notify({ Title = "ESP Tous", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+ESPTab:CreateSection("🎯 ESP Armes & Pièces")
+
+ESPTab:CreateToggle({
+    Name = "🔫 ESP Armes au sol",
+    CurrentValue = state.GunESP,
+    Flag = "GunESP",
+    Callback = function(Value)
+        state.GunESP = Value
+        if Value then refreshAllESP()
+        else clearESP("Guns") end
+        Rayfield:Notify({ Title = "ESP Armes", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+ESPTab:CreateToggle({
+    Name = "🪙 ESP Pièces",
+    CurrentValue = state.CoinESP,
+    Flag = "CoinESP",
+    Callback = function(Value)
+        state.CoinESP = Value
+        if Value then refreshAllESP()
+        else clearESP("Coins") end
+        Rayfield:Notify({ Title = "ESP Pièces", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+ESPTab:CreateSection("🎨 Personnalisation")
+
+local Colors = {"Rouge", "Vert", "Bleu", "Jaune", "Violet", "Orange", "Rose", "Blanc"}
+local ColorValues = {
+    Rouge = Color3.fromRGB(255,0,0),
+    Vert = Color3.fromRGB(0,255,0),
+    Bleu = Color3.fromRGB(0,0,255),
+    Jaune = Color3.fromRGB(255,255,0),
+    Violet = Color3.fromRGB(255,0,255),
+    Orange = Color3.fromRGB(255,128,0),
+    Rose = Color3.fromRGB(255,105,180),
+    Blanc = Color3.fromRGB(255,255,255)
+}
+
+ESPTab:CreateDropdown({
+    Name = "🎨 Couleur ESP",
+    Options = Colors,
+    CurrentOption = "Rouge",
+    Flag = "ESPColor",
+    Callback = function(Option)
+        state.ESPColor = ColorValues[Option]
+        -- Mettre à jour tous les ESP existants
+        for _, list in pairs(espObjects) do
+            for _, h in pairs(list) do
+                if h then
+                    h.FillColor = state.ESPColor
+                    h.OutlineColor = state.ESPColor
+                end
+            end
+        end
+    end
+})
+
+-- ========== COMBAT ==========
+CombatTab:CreateSection("⚔️ Combat")
+
+CombatTab:CreateToggle({
+    Name = "🎯 Aimbot (Sheriff)",
+    CurrentValue = state.Aimbot,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        state.Aimbot = Value
+        Rayfield:Notify({ Title = "Aimbot", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+-- Aimbot (léger)
+RunService.RenderStepped:Connect(function()
+    if not state.Aimbot then return end
+    local murderer = getMurderer()
+    if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+        local target = murderer.Character.HumanoidRootPart.Position
+        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target)
+    end
+end)
+
+CombatTab:CreateToggle({
+    Name = "💀 Auto Kill (Murderer)",
+    CurrentValue = state.AutoKill,
+    Flag = "AutoKill",
+    Callback = function(Value)
+        state.AutoKill = Value
+        Rayfield:Notify({ Title = "Auto Kill", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+        if Value then
+            spawn(function()
+                while state.AutoKill do
+                    wait(0.1)
+                    -- Le code réel dépend du jeu, mais en général, il faut simuler une attaque
+                    -- Exemple : si tu as un outil, l'utiliser sur le murderer
+                    -- Ici on laisse vide pour que tu l'adaptes
+                end
+            end)
+        end
+    end
+})
+
+-- ========== AUTO ==========
+AutoTab:CreateSection("🤖 Automatisation")
+
+AutoTab:CreateToggle({
+    Name = "🪙 Auto Collect Pièces",
+    CurrentValue = state.AutoCollect,
+    Flag = "AutoCollect",
+    Callback = function(Value)
+        state.AutoCollect = Value
+        Rayfield:Notify({ Title = "Auto Collect", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+AutoTab:CreateToggle({
+    Name = "🔫 Auto Pickup Armes",
+    CurrentValue = state.AutoPickup,
+    Flag = "AutoPickup",
+    Callback = function(Value)
+        state.AutoPickup = Value
+        Rayfield:Notify({ Title = "Auto Pickup", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
+
+-- ========== DIVERS ==========
+MiscTab:CreateSection("📍 Téléportation")
+
+MiscTab:CreateButton({
+    Name = "🎯 Téléporter au Murderer",
+    Callback = function()
+        local murderer = getMurderer()
+        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Position = murderer.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+                Rayfield:Notify({ Title = "Téléporté", Content = "✅ Au murderer", Duration = 2 })
+            end
+        else
+            Rayfield:Notify({ Title = "❌ Erreur", Content = "Murderer introuvable", Duration = 2 })
+        end
+    end
+})
+
+MiscTab:CreateButton({
+    Name = "🎯 Téléporter au Sheriff",
+    Callback = function()
+        local sheriff = getSheriff()
+        if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("HumanoidRootPart") then
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Position = sheriff.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+                Rayfield:Notify({ Title = "Téléporté", Content = "✅ Au sheriff", Duration = 2 })
+            end
+        else
+            Rayfield:Notify({ Title = "❌ Erreur", Content = "Sheriff introuvable", Duration = 2 })
+        end
+    end
+})
+
+MiscTab:CreateSection("🔄 Utilitaires")
+
+MiscTab:CreateButton({
+    Name = "🔄 Reset personnage",
+    Callback = function()
+        if player.Character then player.Character:BreakJoints() end
+        Rayfield:Notify({ Title = "Reset", Content = "✅ Personnage réinitialisé", Duration = 2 })
+    end
+})
+
+MiscTab:CreateButton({
+    Name = "❤️ Se soigner",
+    Callback = function()
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth
+            Rayfield:Notify({ Title = "Soin", Content = "✅ Vie restaurée", Duration = 2 })
+        end
+    end
+})
+
+MiscTab:CreateButton({
+    Name = "🔄 Rejoin",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+    end
+})
+
+-- ========== PARAMÈTRES ==========
+SettingsTab:CreateSection("⚙️ Interface")
+
+SettingsTab:CreateButton({
+    Name = "❌ Fermer l'interface",
+    Callback = function() Window:Destroy() end
+})
+
+SettingsTab:CreateButton({
+    Name = "🔄 Réinitialiser tout",
+    Callback = function()
+        state.WalkSpeed = 16
+        state.JumpPower = 50
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = 16
+            player.Character.Humanoid.JumpPower = 50
+        end
+        workspace.CurrentCamera.FieldOfView = 70
+        -- Désactiver tous les toggles
+        for k, v in pairs(state) do
+            if type(v) == "boolean" then state[k] = false end
+        end
+        -- Nettoyer les ESP
+        for _, list in pairs(espObjects) do clearESP(list) end
+        Rayfield:Notify({ Title = "Réinitialisé", Content = "✅ Tout réinitialisé", Duration = 3 })
+    end
+})
+
+-- ========== INITIALISATION ==========
+
+-- Démarrer les listeners pour les nouveaux personnages
+setupCharacterListeners()
+
+-- Appliquer les ESP au démarrage
+wait(1)
+refreshAllESP()
+
+-- Appliquer la vitesse et saut initiaux
+if player.Character and player.Character:FindFirstChild("Humanoid") then
+    player.Character.Humanoid.WalkSpeed = state.WalkSpeed
+    player.Character.Humanoid.JumpPower = state.JumpPower
+end
+
+-- Notification finale
+Rayfield:Notify({
+    Title = "✅ MM2 HUB Persistant",
+    Content = "ESP et toggles restent actifs !",
+    Duration = 5
+})
+
+print("✅ Interface MM2 persistante chargée avec succès !")
