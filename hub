@@ -1,101 +1,86 @@
 --[[
     INTERFACE RAYFIELD - MM2
-    Système de clé design moderne (stable)
+    Système de clé design moderne (sans transparence, compatible)
     Clé : mm2
 ]]
 
 -- ============================================================
---  SYSTÈME DE CLÉ - VERSION MODERNE STABLE
+--  SYSTÈME DE CLÉ - VERSION MODERNE & FIABLE
 -- ============================================================
 local KeySystem = true
 local Key = "mm2"
 
 if KeySystem then
     local function AskForKey()
-        -- ScreenGui
         local screenGui = Instance.new("ScreenGui")
         screenGui.Name = "KeySystemModern"
         screenGui.Parent = game.Players.LocalPlayer.PlayerGui
-        screenGui.IgnoreGuiInset = true
         screenGui.ResetOnSpawn = false
 
-        -- Overlay sombre
+        -- Fond sombre avec dégradé
         local overlay = Instance.new("Frame")
         overlay.Size = UDim2.new(1, 0, 1, 0)
-        overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        overlay.BackgroundTransparency = 0.6
+        overlay.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+        overlay.BackgroundTransparency = 0.85
         overlay.BorderSizePixel = 0
         overlay.Parent = screenGui
 
-        -- Cadre principal (glassmorphism sombre, visible sur tous les fonds)
+        -- Cadre principal
         local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 400, 0, 250)
-        frame.Position = UDim2.new(0.5, -200, 0.5, -125)
-        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        frame.BackgroundTransparency = 0.2
+        frame.Size = UDim2.new(0, 400, 0, 260)
+        frame.Position = UDim2.new(0.5, -200, 0.5, -130)
+        frame.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
         frame.BorderSizePixel = 0
-        frame.ClipsDescendants = true
         frame.Parent = screenGui
 
-        -- Coins arrondis
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 16)
-        corner.Parent = frame
+        local frameCorner = Instance.new("UICorner")
+        frameCorner.CornerRadius = UDim.new(0, 16)
+        frameCorner.Parent = frame
 
-        -- Bordure fine
-        local border = Instance.new("UIStroke")
-        border.Thickness = 1
-        border.Color = Color3.fromRGB(255, 255, 255)
-        border.Transparency = 0.3
-        border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        -- Bordure lumineuse
+        local border = Instance.new("Frame")
+        border.Size = UDim2.new(1, 0, 1, 0)
+        border.BackgroundTransparency = 1
+        border.BorderSizePixel = 2
+        border.BorderColor3 = Color3.fromRGB(100, 180, 255)
         border.Parent = frame
 
-        -- Icône
-        local icon = Instance.new("TextLabel")
-        icon.Size = UDim2.new(0, 60, 0, 60)
-        icon.Position = UDim2.new(0.5, -30, 0.1, 0)
-        icon.BackgroundTransparency = 1
-        icon.Text = "🔑"
-        icon.TextColor3 = Color3.fromRGB(255, 255, 255)
-        icon.TextScaled = true
-        icon.Font = Enum.Font.SourceSansBold
-        icon.Parent = frame
+        local borderCorner = Instance.new("UICorner")
+        borderCorner.CornerRadius = UDim.new(0, 16)
+        borderCorner.Parent = border
 
         -- Titre
         local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, 0, 0, 35)
-        title.Position = UDim2.new(0, 0, 0.3, 0)
+        title.Size = UDim2.new(1, 0, 0, 50)
+        title.Position = UDim2.new(0, 0, 0.05, 0)
         title.BackgroundTransparency = 1
-        title.Text = "Entrez la clé d'accès"
+        title.Text = "🔑  Accès sécurisé"
         title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        title.TextScaled = true
-        title.Font = Enum.Font.SourceSansBold
-        title.TextSize = 20
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 26
         title.Parent = frame
 
         -- Sous-titre
         local subtitle = Instance.new("TextLabel")
-        subtitle.Size = UDim2.new(1, 0, 0, 25)
-        subtitle.Position = UDim2.new(0, 0, 0.42, 0)
+        subtitle.Size = UDim2.new(1, 0, 0, 30)
+        subtitle.Position = UDim2.new(0, 0, 0.25, 0)
         subtitle.BackgroundTransparency = 1
-        subtitle.Text = "Réservé aux utilisateurs autorisés"
-        subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-        subtitle.TextScaled = true
-        subtitle.Font = Enum.Font.SourceSans
-        subtitle.TextSize = 14
+        subtitle.Text = "Entrez la clé pour utiliser l'interface"
+        subtitle.TextColor3 = Color3.fromRGB(180, 190, 210)
+        subtitle.Font = Enum.Font.Gotham
+        subtitle.TextSize = 16
         subtitle.Parent = frame
 
         -- Champ de saisie
         local textBox = Instance.new("TextBox")
-        textBox.Size = UDim2.new(0.8, 0, 0, 40)
-        textBox.Position = UDim2.new(0.1, 0, 0.55, 0)
-        textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        textBox.BackgroundTransparency = 0.2
+        textBox.Size = UDim2.new(0.8, 0, 0, 45)
+        textBox.Position = UDim2.new(0.1, 0, 0.42, 0)
+        textBox.BackgroundColor3 = Color3.fromRGB(20, 25, 40)
         textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-        textBox.Font = Enum.Font.SourceSans
+        textBox.Font = Enum.Font.Gotham
         textBox.TextSize = 18
-        textBox.PlaceholderText = "🔑 Clé..."
-        textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+        textBox.PlaceholderText = "Entrez la clé..."
+        textBox.PlaceholderColor3 = Color3.fromRGB(130, 140, 160)
         textBox.Text = ""
         textBox.ClearTextOnFocus = false
         textBox.Parent = frame
@@ -104,52 +89,59 @@ if KeySystem then
         textCorner.CornerRadius = UDim.new(0, 10)
         textCorner.Parent = textBox
 
-        -- Focus automatique
-        textBox:CaptureFocus()
+        -- Indicateur de clé (verrou)
+        local lockIcon = Instance.new("TextLabel")
+        lockIcon.Size = UDim2.new(0, 30, 0, 30)
+        lockIcon.Position = UDim2.new(0.05, 0, 0.44, 0)
+        lockIcon.BackgroundTransparency = 1
+        lockIcon.Text = "🔒"
+        lockIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+        lockIcon.TextSize = 20
+        lockIcon.Font = Enum.Font.SourceSans
+        lockIcon.Parent = frame
 
         -- Bouton Valider
         local validateBtn = Instance.new("TextButton")
-        validateBtn.Size = UDim2.new(0.4, 0, 0, 40)
-        validateBtn.Position = UDim2.new(0.3, 0, 0.75, 0)
-        validateBtn.BackgroundColor3 = Color3.fromRGB(80, 180, 255)
-        validateBtn.BackgroundTransparency = 0.2
+        validateBtn.Size = UDim2.new(0.4, 0, 0, 45)
+        validateBtn.Position = UDim2.new(0.3, 0, 0.65, 0)
+        validateBtn.BackgroundColor3 = Color3.fromRGB(60, 140, 255)
         validateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        validateBtn.Font = Enum.Font.SourceSansBold
+        validateBtn.Font = Enum.Font.GothamBold
         validateBtn.TextSize = 18
-        validateBtn.Text = "✓ Valider"
+        validateBtn.Text = "✅  Valider"
         validateBtn.AutoButtonColor = false
         validateBtn.Parent = frame
 
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 12)
+        btnCorner.CornerRadius = UDim.new(0, 10)
         btnCorner.Parent = validateBtn
 
         -- Effet hover
         validateBtn.MouseEnter:Connect(function()
-            validateBtn.BackgroundTransparency = 0
-            validateBtn.BackgroundColor3 = Color3.fromRGB(60, 160, 255)
+            validateBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
         end)
         validateBtn.MouseLeave:Connect(function()
-            validateBtn.BackgroundTransparency = 0.2
-            validateBtn.BackgroundColor3 = Color3.fromRGB(80, 180, 255)
+            validateBtn.BackgroundColor3 = Color3.fromRGB(60, 140, 255)
         end)
 
         -- Message d'erreur
         local errorLabel = Instance.new("TextLabel")
         errorLabel.Size = UDim2.new(1, 0, 0, 30)
-        errorLabel.Position = UDim2.new(0, 0, 0.9, 0)
+        errorLabel.Position = UDim2.new(0, 0, 0.85, 0)
         errorLabel.BackgroundTransparency = 1
         errorLabel.Text = ""
-        errorLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-        errorLabel.Font = Enum.Font.SourceSansBold
+        errorLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+        errorLabel.Font = Enum.Font.Gotham
         errorLabel.TextSize = 16
         errorLabel.Visible = false
         errorLabel.Parent = frame
 
-        -- Résultat
+        -- Focus automatique
+        task.wait(0.1)
+        textBox:CaptureFocus()
+
         local result = nil
 
-        -- Fonction de validation
         local function validate(input)
             if input == Key then
                 result = true
@@ -159,14 +151,14 @@ if KeySystem then
                 errorLabel.Visible = true
                 textBox.Text = ""
                 textBox:CaptureFocus()
-                -- Animation de shake
+                -- Animation shake
                 for i = 1, 3 do
-                    textBox.Position = UDim2.new(0.1, 8, 0.55, 0)
-                    wait(0.05)
-                    textBox.Position = UDim2.new(0.1, -8, 0.55, 0)
-                    wait(0.05)
+                    textBox.Position = UDim2.new(0.1, 10, 0.42, 0)
+                    task.wait(0.05)
+                    textBox.Position = UDim2.new(0.1, -10, 0.42, 0)
+                    task.wait(0.05)
                 end
-                textBox.Position = UDim2.new(0.1, 0, 0.55, 0)
+                textBox.Position = UDim2.new(0.1, 0, 0.42, 0)
             end
         end
 
@@ -180,8 +172,16 @@ if KeySystem then
             end
         end)
 
+        -- Permettre de valider avec Entrée
+        game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Enum.KeyCode.Return or input.KeyCode == Enum.KeyCode.KeypadEnter then
+                validate(textBox.Text)
+            end
+        end)
+
         repeat
-            wait()
+            task.wait()
         until result ~= nil
 
         return result
@@ -196,7 +196,6 @@ if KeySystem then
 end
 
 -- ============================================================
---  SUITE DU SCRIPT : Rayfield + interface MM2
---  (Le reste du script est identique à la version précédente)
+--  CHARGEMENT RAYFIELD (le reste est identique)
 -- ============================================================
--- <ICI COLLE LE RESTE DE TON SCRIPT RAYFIELD>
+-- (Copier ici toute la suite du script précédent à partir du chargement de Rayfield)
