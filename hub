@@ -1,5 +1,5 @@
 --[[
-    INTERFACE MM2 - AVEC ONGLET MONDE
+    INTERFACE MM2 - AVEC TÉLÉPORTATION LOBBY ET MAP
     Clé : mm2
     ESP : Rouge (Murderer) / Bleu (Sheriff) / Jaune (Innocents) / Cyan (Armes)
 ]]
@@ -366,7 +366,7 @@ local MainTab = Window:CreateTab("🏠 Accueil")
 local PlayerTab = Window:CreateTab("👤 Joueur")
 local ESPTab = Window:CreateTab("👁️ ESP")
 local CombatTab = Window:CreateTab("⚔️ Combat")
-local WorldTab = Window:CreateTab("🌍 Monde")      -- NOUVEAU
+local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
@@ -376,7 +376,7 @@ local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 MainTab:CreateParagraph({
     Title = "🔪 MM2 HUB",
     Content = "👤 Joueurs: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers ..
-    "\n🔑 Clé: mm2\n\n🎨 Couleurs ESP:\n🔴 Murderer = ROUGE\n🔵 Sheriff = BLEU\n🟡 Innocents = JAUNE\n🔫 Armes = CYAN\n\n🌍 Téléportation dans l'onglet Monde\n💥 Fling dans l'onglet Divers"
+    "\n🔑 Clé: mm2\n\n🎨 Couleurs ESP:\n🔴 Murderer = ROUGE\n🔵 Sheriff = BLEU\n🟡 Innocents = JAUNE\n🔫 Armes = CYAN\n\n🌍 Téléportation Lobby/Map dans l'onglet Monde"
 })
 
 MainTab:CreateButton({
@@ -665,6 +665,70 @@ WorldTab:CreateButton({
     end
 })
 
+-- NOUVEAU : Téléportation Lobby
+WorldTab:CreateButton({
+    Name = "🏠 Téléportation Lobby",
+    Callback = function()
+        local lobby = workspace:FindFirstChild("Lobby")
+        if not lobby then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("Model") and (v.Name == "Lobby" or string.find(v.Name, "Lobby")) then
+                    lobby = v
+                    break
+                end
+            end
+        end
+        if lobby and lobby:FindFirstChild("HumanoidRootPart") then
+            local pos = lobby.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Position = pos
+                Rayfield:Notify({ Title = "🏠 Lobby", Content = "Téléporté au lobby", Duration = 2 })
+            else
+                Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
+            end
+        else
+            -- Fallback : coordonnées fixes
+            local pos = Vector3.new(0, 50, 0)
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Position = pos
+                Rayfield:Notify({ Title = "🏠 Lobby", Content = "Téléporté au lobby (position fixe)", Duration = 2 })
+            end
+        end
+    end
+})
+
+-- NOUVEAU : Téléportation Map
+WorldTab:CreateButton({
+    Name = "🗺️ Téléportation Map",
+    Callback = function()
+        local map = workspace:FindFirstChild("Map")
+        if not map then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("Model") and (v.Name == "Map" or string.find(v.Name, "Map") or string.find(v.Name, "Game")) then
+                    map = v
+                    break
+                end
+            end
+        end
+        if map and map:FindFirstChild("HumanoidRootPart") then
+            local pos = map.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Position = pos
+                Rayfield:Notify({ Title = "🗺️ Map", Content = "Téléporté sur la map", Duration = 2 })
+            else
+                Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
+            end
+        else
+            -- Fallback : coordonnées fixes
+            local pos = Vector3.new(0, 100, 0)
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Position = pos
+                Rayfield:Notify({ Title = "🗺️ Map", Content = "Téléporté sur la map (position fixe)", Duration = 2 })
+            end
+        end
+    end
+})
+
 -- ============================================
 -- ONGLET DIVERS (Fling + Utilitaires)
 -- ============================================
@@ -813,8 +877,8 @@ end
 
 Rayfield:Notify({
     Title = "✅ MM2 HUB",
-    Content = "🔴 Murderer ROUGE | 🔵 Sheriff BLEU | 🟡 Innocents JAUNE | 🔫 Armes CYAN\n🌍 Téléportation dans l'onglet Monde",
+    Content = "🔴 Murderer ROUGE | 🔵 Sheriff BLEU | 🟡 Innocents JAUNE | 🔫 Armes CYAN\n🌍 Téléportation Lobby/Map disponibles",
     Duration = 5
 })
 
-print("✅ Interface MM2 avec onglet Monde chargée avec succès !")
+print("✅ Interface MM2 avec téléportation Lobby/Map chargée avec succès !")
