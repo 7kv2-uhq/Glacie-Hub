@@ -1,17 +1,118 @@
 --[[
-    INTERFACE RAYFIELD - MM2 PERSISTANTE (SANS AUTO)
-    Version stable, ESP persistent, sans les bugs d'auto collect/pickup
+    INTERFACE RAYFIELD - MM2
+    Système de clé : mm2
+    ESP persistant, sans catégorie Auto
 ]]
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-if not Rayfield then return end
+-- ============================================================
+--  SYSTÈME DE CLÉ
+-- ============================================================
+local KeySystem = true
+local Key = "mm2"  -- La clé est "mm2" en minuscules
 
+if KeySystem then
+    local KeyInput = nil
+    
+    -- Créer une fenêtre de dialogue personnalisée
+    local function AskForKey()
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "KeySystem"
+        screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 400, 0, 200)
+        frame.Position = UDim2.new(0.5, -200, 0.5, -100)
+        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        frame.BackgroundTransparency = 0.1
+        frame.BorderSizePixel = 0
+        frame.Parent = screenGui
+        
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, 0, 0, 50)
+        title.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        title.Text = "🔑 Entrez la clé"
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        title.Font = Enum.Font.SourceSansBold
+        title.TextSize = 24
+        title.Parent = frame
+        
+        local textBox = Instance.new("TextBox")
+        textBox.Size = UDim2.new(0.8, 0, 0, 40)
+        textBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+        textBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        textBox.Font = Enum.Font.SourceSans
+        textBox.TextSize = 18
+        textBox.PlaceholderText = "Entrez la clé..."
+        textBox.Text = ""
+        textBox.Parent = frame
+        
+        local validateBtn = Instance.new("TextButton")
+        validateBtn.Size = UDim2.new(0.4, 0, 0, 40)
+        validateBtn.Position = UDim2.new(0.3, 0, 0.6, 0)
+        validateBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+        validateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        validateBtn.Font = Enum.Font.SourceSans
+        validateBtn.TextSize = 18
+        validateBtn.Text = "Valider"
+        validateBtn.Parent = frame
+        
+        local result = nil
+        
+        validateBtn.MouseButton1Click:Connect(function()
+            local input = textBox.Text
+            if input == Key then
+                result = true
+                screenGui:Destroy()
+            else
+                -- Mauvais clé
+                local errorLabel = Instance.new("TextLabel")
+                errorLabel.Size = UDim2.new(1, 0, 0, 30)
+                errorLabel.Position = UDim2.new(0, 0, 0.8, 0)
+                errorLabel.BackgroundTransparency = 1
+                errorLabel.Text = "❌ Clé incorrecte !"
+                errorLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                errorLabel.Font = Enum.Font.SourceSansBold
+                errorLabel.TextSize = 18
+                errorLabel.Parent = frame
+                textBox.Text = ""
+            end
+        end)
+        
+        repeat
+            wait()
+        until result ~= nil
+        
+        return result
+    end
+    
+    -- Demander la clé
+    local correct = AskForKey()
+    if not correct then
+        print("❌ Clé incorrecte, arrêt du script")
+        return
+    end
+    print("✅ Clé correcte ! Chargement de l'interface...")
+end
+
+-- ============================================================
+--  CHARGEMENT RAYFIELD
+-- ============================================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+if not Rayfield then
+    print("❌ Erreur: Impossible de charger Rayfield")
+    return
+end
+print("✅ Rayfield chargé !")
+
+-- ============================================================
+--  VARIABLES
+-- ============================================================
 local player = game.Players.LocalPlayer
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- ========== VARIABLES PERSISTANTES ==========
 local state = {
     Fly = false,
     Noclip = false,
@@ -21,6 +122,7 @@ local state = {
     GunESP = false,
     CoinESP = false,
     Aimbot = false,
+    AutoKill = false,
     WalkSpeed = 16,
     JumpPower = 50,
     ESPColor = Color3.fromRGB(255, 0, 0)
@@ -36,7 +138,9 @@ local espObjects = {
 
 local bodyVelocity = nil
 
--- ========== FONCTIONS UTILITAIRES ==========
+-- ============================================================
+--  FONCTIONS UTILITAIRES
+-- ============================================================
 
 local function getMurderer()
     for _, v in pairs(Players:GetPlayers()) do
@@ -98,8 +202,11 @@ local function clearESP(tableName)
     espObjects[tableName] = {}
 end
 
+-- ============================================================
+--  ESP PERSISTANT
+-- ============================================================
+
 local function refreshAllESP()
-    -- Murderer
     if state.MurdererESP then
         clearESP("Murderer")
         local murderer = getMurderer()
@@ -109,7 +216,6 @@ local function refreshAllESP()
         end
     end
     
-    -- Sheriff
     if state.SheriffESP then
         clearESP("Sheriff")
         local sheriff = getSheriff()
@@ -119,7 +225,6 @@ local function refreshAllESP()
         end
     end
     
-    -- All players
     if state.AllESP then
         clearESP("All")
         for _, v in pairs(Players:GetPlayers()) do
@@ -130,7 +235,6 @@ local function refreshAllESP()
         end
     end
     
-    -- Guns
     if state.GunESP then
         clearESP("Guns")
         for _, gun in pairs(getGuns()) do
@@ -141,7 +245,6 @@ local function refreshAllESP()
         end
     end
     
-    -- Coins
     if state.CoinESP then
         clearESP("Coins")
         for _, coin in pairs(getCoins()) do
@@ -153,14 +256,20 @@ local function refreshAllESP()
     end
 end
 
--- ========== GESTION DES NOUVEAUX PERSONNAGES ==========
+-- Mise à jour automatique des ESP
+spawn(function()
+    while wait(2) do
+        if state.MurdererESP or state.SheriffESP or state.AllESP or state.GunESP or state.CoinESP then
+            refreshAllESP()
+        end
+    end
+end)
 
+-- Gestion des respawns
 local function setupCharacterListeners()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
-            p.CharacterAdded:Connect(function()
-                refreshAllESP()
-            end)
+            p.CharacterAdded:Connect(function() refreshAllESP() end)
         end
     end
     player.CharacterAdded:Connect(function()
@@ -171,9 +280,7 @@ local function setupCharacterListeners()
         end
         if state.Noclip and player.Character then
             for _, v in pairs(player.Character:GetChildren()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
+                if v:IsA("BasePart") then v.CanCollide = false end
             end
         end
         if state.Fly and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -188,32 +295,24 @@ local function setupCharacterListeners()
 end
 
 Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function()
-        refreshAllESP()
-    end)
+    p.CharacterAdded:Connect(function() refreshAllESP() end)
     wait(0.5)
     refreshAllESP()
 end)
 
--- Rafraîchissement périodique
-spawn(function()
-    while wait(2) do
-        if state.MurdererESP or state.SheriffESP or state.AllESP or state.GunESP or state.CoinESP then
-            refreshAllESP()
-        end
-    end
-end)
-
--- ========== CRÉATION DE L'INTERFACE ==========
+-- ============================================================
+--  INTERFACE
+-- ============================================================
 
 local Window = Rayfield:CreateWindow({
     Name = "🔪 MM2 HUB",
     LoadingTitle = "Chargement...",
-    LoadingSubtitle = "Persistant (sans Auto)",
-    ConfigurationSaving = { Enabled = true, FolderName = "MM2Config", FileName = "MM2HubPersistentNoAuto" },
+    LoadingSubtitle = "Clé : mm2",
+    ConfigurationSaving = { Enabled = true, FolderName = "MM2Config", FileName = "MM2HubPersistent" },
     KeySystem = false
 })
 
+-- Onglets
 local MainTab = Window:CreateTab("🏠 Accueil")
 local PlayerTab = Window:CreateTab("👤 Joueur")
 local ESPTab = Window:CreateTab("👁️ ESP")
@@ -224,8 +323,9 @@ local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 -- ========== ACCUEIL ==========
 MainTab:CreateParagraph({
     Title = "🔪 MM2 HUB Persistant",
-    Content = "ESP et toggles restent actifs après chaque round !\n\n" ..
-    "👤 Joueurs: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+    Content = "ESP et toggles restent actifs après chaque mort/round !\n\n" ..
+    "👤 Joueurs: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers ..
+    "\n🔑 Clé: mm2"
 })
 
 MainTab:CreateButton({
@@ -297,6 +397,7 @@ PlayerTab:CreateToggle({
     end
 })
 
+-- Contrôles Fly (WASD + Espace/Shift)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or not state.Fly then return end
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
@@ -338,8 +439,7 @@ ESPTab:CreateToggle({
     Flag = "MurdererESP",
     Callback = function(Value)
         state.MurdererESP = Value
-        if Value then refreshAllESP()
-        else clearESP("Murderer") end
+        if Value then refreshAllESP() else clearESP("Murderer") end
         Rayfield:Notify({ Title = "ESP Murderer", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
     end
 })
@@ -350,8 +450,7 @@ ESPTab:CreateToggle({
     Flag = "SheriffESP",
     Callback = function(Value)
         state.SheriffESP = Value
-        if Value then refreshAllESP()
-        else clearESP("Sheriff") end
+        if Value then refreshAllESP() else clearESP("Sheriff") end
         Rayfield:Notify({ Title = "ESP Sheriff", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
     end
 })
@@ -362,8 +461,7 @@ ESPTab:CreateToggle({
     Flag = "AllESP",
     Callback = function(Value)
         state.AllESP = Value
-        if Value then refreshAllESP()
-        else clearESP("All") end
+        if Value then refreshAllESP() else clearESP("All") end
         Rayfield:Notify({ Title = "ESP Tous", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
     end
 })
@@ -376,8 +474,7 @@ ESPTab:CreateToggle({
     Flag = "GunESP",
     Callback = function(Value)
         state.GunESP = Value
-        if Value then refreshAllESP()
-        else clearESP("Guns") end
+        if Value then refreshAllESP() else clearESP("Guns") end
         Rayfield:Notify({ Title = "ESP Armes", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
     end
 })
@@ -388,8 +485,7 @@ ESPTab:CreateToggle({
     Flag = "CoinESP",
     Callback = function(Value)
         state.CoinESP = Value
-        if Value then refreshAllESP()
-        else clearESP("Coins") end
+        if Value then refreshAllESP() else clearESP("Coins") end
         Rayfield:Notify({ Title = "ESP Pièces", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
     end
 })
@@ -443,10 +539,19 @@ RunService.RenderStepped:Connect(function()
     if not state.Aimbot then return end
     local murderer = getMurderer()
     if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-        local target = murderer.Character.HumanoidRootPart.Position
-        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target)
+        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, murderer.Character.HumanoidRootPart.Position)
     end
 end)
+
+CombatTab:CreateToggle({
+    Name = "💀 Auto Kill (Murderer)",
+    CurrentValue = state.AutoKill,
+    Flag = "AutoKill",
+    Callback = function(Value)
+        state.AutoKill = Value
+        Rayfield:Notify({ Title = "Auto Kill", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+    end
+})
 
 -- ========== DIVERS ==========
 MiscTab:CreateSection("📍 Téléportation")
@@ -534,7 +639,9 @@ SettingsTab:CreateButton({
     end
 })
 
--- ========== INITIALISATION ==========
+-- ============================================================
+--  INITIALISATION
+-- ============================================================
 
 setupCharacterListeners()
 wait(1)
@@ -546,9 +653,9 @@ if player.Character and player.Character:FindFirstChild("Humanoid") then
 end
 
 Rayfield:Notify({
-    Title = "✅ MM2 HUB Persistant (sans Auto)",
-    Content = "ESP persistants, pas de bugs !",
+    Title = "✅ MM2 HUB",
+    Content = "Clé correcte ! Interface chargée.",
     Duration = 5
 })
 
-print("✅ Interface MM2 (sans auto) chargée avec succès !")
+print("✅ Interface MM2 chargée avec succès !")
