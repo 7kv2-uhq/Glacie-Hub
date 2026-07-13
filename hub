@@ -1,11 +1,11 @@
 --[[
     INTERFACE RAYFIELD - MM2
-    Système de clé design moderne (sans transparence, compatible)
-    Clé : mm2
+    Système de clé : mm2
+    ESP avec couleurs distinctes : Murderer = ROUGE, Sheriff = BLEU, Innocents = JAUNE
 ]]
 
 -- ============================================================
---  SYSTÈME DE CLÉ - VERSION MODERNE & FIABLE
+--  SYSTÈME DE CLÉ
 -- ============================================================
 local KeySystem = true
 local Key = "mm2"
@@ -179,7 +179,7 @@ if KeySystem then
         print("❌ Clé incorrecte, arrêt du script")
         return
     end
-    print("✅ Clé correcte ! Chargement de l'interface...")
+    print("✅ Clé correcte ! Chargement...")
 end
 
 -- ============================================================
@@ -190,7 +190,6 @@ if not Rayfield then
     print("❌ Erreur: Impossible de charger Rayfield")
     return
 end
-print("✅ Rayfield chargé !")
 
 -- ============================================================
 --  VARIABLES
@@ -213,7 +212,10 @@ local state = {
     ShootKey = "R",
     WalkSpeed = 16,
     JumpPower = 50,
-    ESPColor = Color3.fromRGB(255, 0, 0)
+    -- Couleurs par défaut des ESP
+    MurdererColor = Color3.fromRGB(255, 0, 0),   -- ROUGE vif
+    SheriffColor = Color3.fromRGB(0, 100, 255),  -- BLEU vif
+    InnocentColor = Color3.fromRGB(255, 200, 0)  -- JAUNE doré
 }
 
 local espObjects = {
@@ -224,6 +226,8 @@ local espObjects = {
 }
 
 local bodyVelocity = nil
+local lastMurderer = nil
+local lastSheriff = nil
 
 -- ============================================================
 --  FONCTIONS UTILITAIRES
@@ -288,16 +292,17 @@ local function shootSheriff()
 end
 
 -- ============================================================
---  ESP PERSISTANT
+--  ESP PERSISTANT - VERSION CORRIGÉE
 -- ============================================================
-local function createESP(instance, color, transparency)
+local function createESP(instance, color, transparency, outlineColor)
     if not instance or not instance.Parent then return nil end
     local highlight = Instance.new("Highlight")
     highlight.Parent = instance
-    highlight.FillColor = color or state.ESPColor
-    highlight.FillTransparency = transparency or 0.4
-    highlight.OutlineColor = color or state.ESPColor
+    highlight.FillColor = color
+    highlight.FillTransparency = transparency or 0.3
+    highlight.OutlineColor = outlineColor or color
     highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop  -- Priorité !
     return highlight
 end
 
@@ -309,31 +314,48 @@ local function clearESP(tableName)
 end
 
 local function refreshAllESP()
+    -- === MURDERER (ROUGE) ===
     if state.MurdererESP then
         clearESP("Murderer")
         local murderer = getMurderer()
         if murderer and murderer.Character then
-            local h = createESP(murderer.Character, Color3.fromRGB(255,0,0), 0.4)
+            -- Appliquer l'ESP sur toute la tête du personnage
+            local target = murderer.Character:FindFirstChild("Head") or murderer.Character
+            local h = createESP(target, state.MurdererColor, 0.25, Color3.fromRGB(255, 200, 200))
             if h then table.insert(espObjects.Murderer, h) end
         end
     end
+    
+    -- === SHERIFF (BLEU) ===
     if state.SheriffESP then
         clearESP("Sheriff")
         local sheriff = getSheriff()
         if sheriff and sheriff.Character then
-            local h = createESP(sheriff.Character, Color3.fromRGB(0,255,0), 0.4)
+            local target = sheriff.Character:FindFirstChild("Head") or sheriff.Character
+            local h = createESP(target, state.SheriffColor, 0.25, Color3.fromRGB(200, 200, 255))
             if h then table.insert(espObjects.Sheriff, h) end
         end
     end
+    
+    -- === INNOCENTS (JAUNE) - Uniquement si AllESP est activé ===
     if state.AllESP then
         clearESP("All")
+        local murderer = getMurderer()
+        local sheriff = getSheriff()
+        
         for _, v in pairs(Players:GetPlayers()) do
             if v ~= player and v.Character then
-                local h = createESP(v.Character, Color3.fromRGB(255,255,0), 0.3)
-                if h then table.insert(espObjects.All, h) end
+                -- Ne pas mettre d'ESP sur le murderer ou le sheriff (ils ont déjà leur propre ESP)
+                if v ~= murderer and v ~= sheriff then
+                    local target = v.Character:FindFirstChild("Head") or v.Character
+                    local h = createESP(target, state.InnocentColor, 0.2, Color3.fromRGB(255, 230, 150))
+                    if h then table.insert(espObjects.All, h) end
+                end
             end
         end
     end
+    
+    -- === ARMES (CYAN) ===
     if state.GunESP then
         clearESP("Guns")
         for _, gun in pairs(getGuns()) do
@@ -342,25 +364,30 @@ local function refreshAllESP()
                 if gun:IsA("Tool") and gun.Parent and gun.Parent:IsA("Model") then
                     target = gun.Parent
                 end
-                local h = createESP(target, Color3.fromRGB(0,255,255), 0.5)
+                local h = createESP(target, Color3.fromRGB(0, 255, 255), 0.4, Color3.fromRGB(150, 255, 255))
                 if h then table.insert(espObjects.Guns, h) end
             end
         end
     end
 end
 
+-- Rafraîchissement plus lent pour éviter les flashs
 spawn(function()
-    while wait(2) do
+    while wait(3) do  -- 3 secondes au lieu de 2
         if state.MurdererESP or state.SheriffESP or state.AllESP or state.GunESP then
             refreshAllESP()
         end
     end
 end)
 
+-- Gestion des respawns
 local function setupCharacterListeners()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
-            p.CharacterAdded:Connect(function() refreshAllESP() end)
+            p.CharacterAdded:Connect(function() 
+                wait(0.5)
+                refreshAllESP() 
+            end)
         end
     end
     player.CharacterAdded:Connect(function()
@@ -386,7 +413,10 @@ local function setupCharacterListeners()
 end
 
 Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function() refreshAllESP() end)
+    p.CharacterAdded:Connect(function() 
+        wait(0.5)
+        refreshAllESP() 
+    end)
     wait(0.5)
     refreshAllESP()
 end)
@@ -402,7 +432,6 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 
--- Vérification que la fenêtre est créée
 if not Window then
     print("❌ Erreur: Impossible de créer la fenêtre Rayfield")
     return
@@ -420,7 +449,8 @@ MainTab:CreateParagraph({
     Title = "🔪 MM2 HUB Persistant",
     Content = "ESP persistant après chaque round !\n\n" ..
     "👤 Joueurs: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers ..
-    "\n🔑 Clé: mm2\n⌨️ Touche X = Camera Lock\n🎯 Touche R = Shoot Sheriff"
+    "\n🔑 Clé: mm2\n⌨️ Touche X = Camera Lock\n🎯 Touche R = Shoot Sheriff\n\n" ..
+    "🎨 Couleurs ESP :\n🔴 Murderer = ROUGE\n🔵 Sheriff = BLEU\n🟡 Innocents = JAUNE"
 })
 
 MainTab:CreateButton({
@@ -528,35 +558,35 @@ PlayerTab:CreateToggle({
 ESPTab:CreateSection("👁️ ESP Joueurs")
 
 ESPTab:CreateToggle({
-    Name = "🔪 ESP Murderer",
+    Name = "🔴 ESP Murderer",
     CurrentValue = state.MurdererESP,
     Flag = "MurdererESP",
     Callback = function(Value)
         state.MurdererESP = Value
         if Value then refreshAllESP() else clearESP("Murderer") end
-        Rayfield:Notify({ Title = "ESP Murderer", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+        Rayfield:Notify({ Title = "ESP Murderer", Content = Value and "✅ ROUGE activé" or "❌ Désactivé", Duration = 1 })
     end
 })
 
 ESPTab:CreateToggle({
-    Name = "🔫 ESP Sheriff",
+    Name = "🔵 ESP Sheriff",
     CurrentValue = state.SheriffESP,
     Flag = "SheriffESP",
     Callback = function(Value)
         state.SheriffESP = Value
         if Value then refreshAllESP() else clearESP("Sheriff") end
-        Rayfield:Notify({ Title = "ESP Sheriff", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+        Rayfield:Notify({ Title = "ESP Sheriff", Content = Value and "✅ BLEU activé" or "❌ Désactivé", Duration = 1 })
     end
 })
 
 ESPTab:CreateToggle({
-    Name = "👁️ ESP Tous les joueurs",
+    Name = "🟡 ESP Innocents",
     CurrentValue = state.AllESP,
     Flag = "AllESP",
     Callback = function(Value)
         state.AllESP = Value
         if Value then refreshAllESP() else clearESP("All") end
-        Rayfield:Notify({ Title = "ESP Tous", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+        Rayfield:Notify({ Title = "ESP Innocents", Content = Value and "✅ JAUNE activé" or "❌ Désactivé", Duration = 1 })
     end
 })
 
@@ -573,35 +603,32 @@ ESPTab:CreateToggle({
     end
 })
 
-ESPTab:CreateSection("🎨 Personnalisation")
+ESPTab:CreateSection("🎨 Couleurs personnalisées")
 
-local Colors = {"Rouge", "Vert", "Bleu", "Jaune", "Violet", "Orange", "Rose", "Blanc"}
-local ColorValues = {
-    Rouge = Color3.fromRGB(255,0,0),
-    Vert = Color3.fromRGB(0,255,0),
-    Bleu = Color3.fromRGB(0,0,255),
-    Jaune = Color3.fromRGB(255,255,0),
-    Violet = Color3.fromRGB(255,0,255),
-    Orange = Color3.fromRGB(255,128,0),
-    Rose = Color3.fromRGB(255,105,180),
-    Blanc = Color3.fromRGB(255,255,255)
-}
+ESPTab:CreateColorPicker({
+    Name = "🔴 Couleur Murderer",
+    Flag = "MurdererColor",
+    Callback = function(Color)
+        state.MurdererColor = Color
+        refreshAllESP()
+    end
+})
 
-ESPTab:CreateDropdown({
-    Name = "🎨 Couleur ESP",
-    Options = Colors,
-    CurrentOption = "Rouge",
-    Flag = "ESPColor",
-    Callback = function(Option)
-        state.ESPColor = ColorValues[Option]
-        for _, list in pairs(espObjects) do
-            for _, h in pairs(list) do
-                if h then
-                    h.FillColor = state.ESPColor
-                    h.OutlineColor = state.ESPColor
-                end
-            end
-        end
+ESPTab:CreateColorPicker({
+    Name = "🔵 Couleur Sheriff",
+    Flag = "SheriffColor",
+    Callback = function(Color)
+        state.SheriffColor = Color
+        refreshAllESP()
+    end
+})
+
+ESPTab:CreateColorPicker({
+    Name = "🟡 Couleur Innocents",
+    Flag = "InnocentColor",
+    Callback = function(Color)
+        state.InnocentColor = Color
+        refreshAllESP()
     end
 })
 
@@ -686,14 +713,6 @@ CombatTab:CreateToggle({
     Callback = function(Value)
         state.AutoKill = Value
         Rayfield:Notify({ Title = "Auto Kill", Content = Value and "✅ Activé" or "❌ Désactivé", Duration = 1 })
-        if Value then
-            spawn(function()
-                while state.AutoKill do
-                    wait(0.1)
-                    -- Code à adapter
-                end
-            end)
-        end
     end
 })
 
@@ -775,6 +794,11 @@ SettingsTab:CreateButton({
             player.Character.Humanoid.JumpPower = 50
         end
         workspace.CurrentCamera.FieldOfView = 70
+        -- Réinitialiser les couleurs ESP
+        state.MurdererColor = Color3.fromRGB(255, 0, 0)
+        state.SheriffColor = Color3.fromRGB(0, 100, 255)
+        state.InnocentColor = Color3.fromRGB(255, 200, 0)
+        -- Désactiver les toggles
         for k, v in pairs(state) do
             if type(v) == "boolean" then state[k] = false end
         end
@@ -799,9 +823,9 @@ if player.Character and player.Character:FindFirstChild("Humanoid") then
 end
 
 Rayfield:Notify({
-    Title = "✅ Glacie Hub",
-    Content = "Clé correcte !\nX = Camera Lock | R = Shoot Sheriff (configurable)",
+    Title = "✅ MM2 HUB",
+    Content = "Clé correcte !\n🔴 Murderer ROUGE | 🔵 Sheriff BLEU | 🟡 Innocents JAUNE",
     Duration = 5
 })
 
-print("✅ Interface MM2 avec nouvelle clé chargée avec succès !")
+print("✅ Interface MM2 avec ESP corrigé chargée avec succès !")
