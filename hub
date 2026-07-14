@@ -5,7 +5,7 @@
 ]]
 
 -- ============================================
--- SYSTÈME DE CLÉ
+-- SYSTÈME DE CLÉ (avec protection anti‑blocage)
 -- ============================================
 local Key = "mm2"
 local screenGui = Instance.new("ScreenGui")
@@ -96,10 +96,17 @@ repeat task.wait() until correct == true
 print("✅ Clé correcte !")
 
 -- ============================================
--- CHARGEMENT RAYFIELD
+-- CHARGEMENT RAYFIELD (avec sécurité)
 -- ============================================
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-if not Rayfield then return end
+local Rayfield
+local success, result = pcall(function()
+    Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or not Rayfield then
+    warn("❌ Échec du chargement de Rayfield. Vérifie ta connexion ou l'URL.")
+    return
+end
 
 -- ============================================
 -- VARIABLES
@@ -128,7 +135,7 @@ local espObjects = { Murderer = {}, Sheriff = {}, Innocents = {}, Guns = {} }
 local bodyVelocity = nil
 
 -- ============================================
--- FONCTIONS UTILITAIRES
+-- FONCTIONS UTILITAIRES (avec vérifications)
 -- ============================================
 local function getMurderer()
     for _, v in pairs(Players:GetPlayers()) do
@@ -180,6 +187,7 @@ local function createESP(instance, color)
 end
 
 local function clearESP(tableName)
+    if not espObjects[tableName] then return end
     for _, v in pairs(espObjects[tableName]) do
         pcall(function() v:Destroy() end)
     end
@@ -238,27 +246,39 @@ end)
 
 player.CharacterAdded:Connect(function()
     task.wait(0.5)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = state.WalkSpeed
-        player.Character.Humanoid.JumpPower = state.JumpPower
-    end
-    if state.Noclip and player.Character then
-        for _, v in pairs(player.Character:GetChildren()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.WalkSpeed = state.WalkSpeed
+            hum.JumpPower = state.JumpPower
         end
-    end
-    if state.Fly and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVelocity.Velocity = Vector3.new(0,0,0)
-        bodyVelocity.Parent = player.Character.HumanoidRootPart
-        player.Character.Humanoid.PlatformStand = true
+        if state.Noclip then
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+        if state.Fly then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp and hum then
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Velocity = Vector3.new(0,0,0)
+                bodyVelocity.Parent = hrp
+                hum.PlatformStand = true
+            end
+        end
     end
     refreshESP()
 end)
 
 Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function() task.wait(0.5) refreshESP() end)
+    p.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        refreshESP()
+    end)
 end)
 
 -- ============================================
@@ -357,7 +377,10 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 
-if not Window then return end
+if not Window then
+    warn("❌ Échec de la création de la fenêtre Rayfield.")
+    return
+end
 
 -- ============================================
 -- ONGLETS
@@ -408,8 +431,10 @@ PlayerTab:CreateSlider({
     Flag = "WalkSpeed",
     Callback = function(v)
         state.WalkSpeed = v
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = v
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = v end
         end
     end
 })
@@ -422,8 +447,10 @@ PlayerTab:CreateSlider({
     Flag = "JumpPower",
     Callback = function(v)
         state.JumpPower = v
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.JumpPower = v
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.JumpPower = v end
         end
     end
 })
@@ -436,18 +463,25 @@ PlayerTab:CreateToggle({
     Flag = "FlyToggle",
     Callback = function(v)
         state.Fly = v
-        if v then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                bodyVelocity = Instance.new("BodyVelocity")
-                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bodyVelocity.Velocity = Vector3.new(0,0,0)
-                bodyVelocity.Parent = player.Character.HumanoidRootPart
-                player.Character.Humanoid.PlatformStand = true
-            end
-        else
-            if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-            if player.Character then
-                player.Character.Humanoid.PlatformStand = false
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if v then
+                if hrp and hum then
+                    if bodyVelocity then bodyVelocity:Destroy() end
+                    bodyVelocity = Instance.new("BodyVelocity")
+                    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bodyVelocity.Velocity = Vector3.new(0,0,0)
+                    bodyVelocity.Parent = hrp
+                    hum.PlatformStand = true
+                end
+            else
+                if bodyVelocity then
+                    bodyVelocity:Destroy()
+                    bodyVelocity = nil
+                end
+                if hum then hum.PlatformStand = false end
             end
         end
         Rayfield:Notify({ Title = "Fly", Content = v and "✅ Activé" or "❌ Désactivé", Duration = 1 })
@@ -456,8 +490,10 @@ PlayerTab:CreateToggle({
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp or not state.Fly then return end
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = player.Character.HumanoidRootPart
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
     local dir = Vector3.new(0,0,0)
     if input.KeyCode == Enum.KeyCode.W then dir = dir + hrp.CFrame.LookVector
     elseif input.KeyCode == Enum.KeyCode.S then dir = dir - hrp.CFrame.LookVector
@@ -477,8 +513,9 @@ PlayerTab:CreateToggle({
     Flag = "NoclipToggle",
     Callback = function(v)
         state.Noclip = v
-        if player.Character then
-            for _, part in pairs(player.Character:GetChildren()) do
+        local char = player.Character
+        if char then
+            for _, part in pairs(char:GetChildren()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = not v
                 end
@@ -640,8 +677,9 @@ WorldTab:CreateButton({
     Callback = function()
         local m = getMurderer()
         if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Position = m.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Position = m.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
                 Rayfield:Notify({ Title = "Téléporté", Content = "✅ Au murderer", Duration = 2 })
             end
         else
@@ -655,8 +693,9 @@ WorldTab:CreateButton({
     Callback = function()
         local s = getSheriff()
         if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
                 Rayfield:Notify({ Title = "Téléporté", Content = "✅ Au sheriff", Duration = 2 })
             end
         else
@@ -665,7 +704,6 @@ WorldTab:CreateButton({
     end
 })
 
--- NOUVEAU : Téléportation Lobby
 WorldTab:CreateButton({
     Name = "🏠 Téléportation Lobby",
     Callback = function()
@@ -680,24 +718,24 @@ WorldTab:CreateButton({
         end
         if lobby and lobby:FindFirstChild("HumanoidRootPart") then
             local pos = lobby.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Position = pos
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Position = pos
                 Rayfield:Notify({ Title = "🏠 Lobby", Content = "Téléporté au lobby", Duration = 2 })
             else
                 Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
             end
         else
-            -- Fallback : coordonnées fixes
             local pos = Vector3.new(0, 50, 0)
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Position = pos
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Position = pos
                 Rayfield:Notify({ Title = "🏠 Lobby", Content = "Téléporté au lobby (position fixe)", Duration = 2 })
             end
         end
     end
 })
 
--- NOUVEAU : Téléportation Map
 WorldTab:CreateButton({
     Name = "🗺️ Téléportation Map",
     Callback = function()
@@ -712,17 +750,18 @@ WorldTab:CreateButton({
         end
         if map and map:FindFirstChild("HumanoidRootPart") then
             local pos = map.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Position = pos
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Position = pos
                 Rayfield:Notify({ Title = "🗺️ Map", Content = "Téléporté sur la map", Duration = 2 })
             else
                 Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
             end
         else
-            -- Fallback : coordonnées fixes
             local pos = Vector3.new(0, 100, 0)
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Position = pos
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Position = pos
                 Rayfield:Notify({ Title = "🗺️ Map", Content = "Téléporté sur la map (position fixe)", Duration = 2 })
             end
         end
@@ -821,9 +860,13 @@ MiscTab:CreateButton({
 MiscTab:CreateButton({
     Name = "❤️ Soin",
     Callback = function()
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth
-            Rayfield:Notify({ Title = "Soin", Content = "✅ Vie restaurée", Duration = 2 })
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.Health = hum.MaxHealth
+                Rayfield:Notify({ Title = "Soin", Content = "✅ Vie restaurée", Duration = 2 })
+            end
         end
     end
 })
@@ -848,18 +891,37 @@ SettingsTab:CreateButton({
 SettingsTab:CreateButton({
     Name = "🔄 Réinitialiser tout",
     Callback = function()
+        -- Réinitialiser les valeurs du joueur
         state.WalkSpeed = 16
         state.JumpPower = 50
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = 16
-            player.Character.Humanoid.JumpPower = 50
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.WalkSpeed = 16
+                hum.JumpPower = 50
+            end
         end
+        -- Réinitialiser tous les toggles
         for k, v in pairs(state) do
-            if type(v) == "boolean" then state[k] = false end
+            if type(v) == "boolean" then
+                state[k] = false
+                -- Mettre à jour les toggles Rayfield (si le flag existe)
+                pcall(function() Rayfield:SetValue(k, false) end)
+            end
         end
-        for _, list in pairs(espObjects) do clearESP(list) end
-        Rayfield:SetValue("CameraLock", false)
-        Rayfield:SetValue("ShootSheriff", false)
+        -- Nettoyer tous les ESP
+        for key, _ in pairs(espObjects) do
+            clearESP(key)
+        end
+        -- Désactiver fly et noclip manuellement
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
+        end
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
         Rayfield:Notify({ Title = "Réinitialisé", Content = "✅ Tout réinitialisé", Duration = 3 })
     end
 })
@@ -870,9 +932,13 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 refreshESP()
 
-if player.Character and player.Character:FindFirstChild("Humanoid") then
-    player.Character.Humanoid.WalkSpeed = 16
-    player.Character.Humanoid.JumpPower = 50
+local char = player.Character
+if char then
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = 16
+        hum.JumpPower = 50
+    end
 end
 
 Rayfield:Notify({
