@@ -1,295 +1,247 @@
 --[[
-    MM2 HUB - Interface clé moderne avec AeroUI
+    MM2 HUB - Interface clé moderne (100% maison)
     Clé : mm2
 ]]
 
 -- ============================================
--- CHARGEMENT DE AeroUI
+-- INTERFACE DE CLÉ (moderne, sans librairie)
 -- ============================================
-local AeroUI
-local success, err = pcall(function()
-    AeroUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIYT/AeroUI/main/AeroUI.lua"))()
+local Key = "mm2"
+local TweenService = game:GetService("TweenService")
+local playerGui = game.Players.LocalPlayer.PlayerGui
+
+-- Supprimer l'ancienne interface
+local oldGui = playerGui:FindFirstChild("KeySystem")
+if oldGui then oldGui:Destroy() end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "KeySystem"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Overlay sombre (dégradé)
+local overlay = Instance.new("Frame")
+overlay.Size = UDim2.new(1, 0, 1, 0)
+overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+overlay.BackgroundTransparency = 0.5
+overlay.Parent = screenGui
+
+-- Carte principale
+local card = Instance.new("Frame")
+card.Size = UDim2.new(0, 380, 0, 260)
+card.Position = UDim2.new(0.5, -190, 0.5, -130)
+card.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+card.BackgroundTransparency = 0
+card.Parent = screenGui
+
+-- Ombre portée (faite maison)
+local shadow = Instance.new("Frame")
+shadow.Size = UDim2.new(0, 390, 0, 270)
+shadow.Position = UDim2.new(0.5, -195 + 6, 0.5, -135 + 6)
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.15
+shadow.ZIndex = 0
+shadow.Parent = screenGui
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 16)
+shadowCorner.Parent = shadow
+
+-- Coins arrondis de la carte
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 16)
+cardCorner.Parent = card
+
+-- Bandeau supérieur (dégradé)
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 60)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+header.BackgroundTransparency = 0
+header.Parent = card
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 16)
+headerCorner.Parent = header
+-- Cacher les coins du bas (astuce)
+local headerClip = Instance.new("UICorner")
+headerClip.CornerRadius = UDim.new(0, 0)
+headerClip.Parent = header
+
+-- Icône clé (à gauche)
+local icon = Instance.new("TextLabel")
+icon.Size = UDim2.new(0, 35, 0, 35)
+icon.Position = UDim2.new(0.06, 0, 0.5, 0)
+icon.AnchorPoint = Vector2.new(0, 0.5)
+icon.BackgroundTransparency = 1
+icon.Text = "🔑"
+icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+icon.Font = Enum.Font.SourceSans
+icon.TextSize = 26
+icon.Parent = header
+
+-- Titre (dans le bandeau)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.6, 0, 0, 30)
+title.Position = UDim2.new(0.16, 0, 0.5, 0)
+title.AnchorPoint = Vector2.new(0, 0.5)
+title.BackgroundTransparency = 1
+title.Text = "ENTRER VOTRE KEY"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- Sous-titre (en dessous du bandeau)
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(0.8, 0, 0, 22)
+subtitle.Position = UDim2.new(0.5, 0, 0.38, 0)
+subtitle.AnchorPoint = Vector2.new(0.5, 0.5)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Veuillez saisir votre key pour continuer."
+subtitle.TextColor3 = Color3.fromRGB(130, 130, 130)
+subtitle.Font = Enum.Font.SourceSans
+subtitle.TextSize = 14
+subtitle.Parent = card
+
+-- Champ de saisie
+local box = Instance.new("TextBox")
+box.Size = UDim2.new(0.7, 0, 0, 44)
+box.Position = UDim2.new(0.5, 0, 0.56, 0)
+box.AnchorPoint = Vector2.new(0.5, 0.5)
+box.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
+box.BorderSizePixel = 1
+box.BorderColor3 = Color3.fromRGB(200, 200, 200)
+box.TextColor3 = Color3.fromRGB(20, 20, 20)
+box.Font = Enum.Font.SourceSans
+box.TextSize = 18
+box.PlaceholderText = "Votre key"
+box.PlaceholderColor3 = Color3.fromRGB(160, 160, 160)
+box.Text = ""
+box.ClearTextOnFocus = false
+box.Parent = card
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 8)
+boxCorner.Parent = box
+
+-- Bouton "VALIDER" (avec dégradé)
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0.4, 0, 0, 44)
+btn.Position = UDim2.new(0.5, 0, 0.78, 0)
+btn.AnchorPoint = Vector2.new(0.5, 0.5)
+btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+btn.BorderSizePixel = 0
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 18
+btn.Text = "VALIDER"
+btn.Parent = card
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = btn
+
+-- Label d'erreur
+local err = Instance.new("TextLabel")
+err.Size = UDim2.new(0.8, 0, 0, 22)
+err.Position = UDim2.new(0.5, 0, 0.93, 0)
+err.AnchorPoint = Vector2.new(0.5, 0.5)
+err.BackgroundTransparency = 1
+err.Text = ""
+err.TextColor3 = Color3.fromRGB(220, 50, 50)
+err.Font = Enum.Font.SourceSans
+err.TextSize = 14
+err.Visible = false
+err.Parent = card
+
+-- === DRAGGABLE ===
+local dragging = false
+local dragStart, startPos
+
+card.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = card.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
-if not success or not AeroUI then
-    warn("❌ Échec du chargement de AeroUI, utilisation de l'interface de secours.")
-    -- Fallback : interface simple mais fonctionnelle
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KeySystem"
-    screenGui.Parent = game.Players.LocalPlayer.PlayerGui
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 350, 0, 200)
-    frame.Position = UDim2.new(0.5, -175, 0.5, -100)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    frame.Parent = screenGui
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-    
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.BackgroundTransparency = 1
-    title.Text = "🔑 Entrez la clé"
-    title.TextColor3 = Color3.fromRGB(255,255,255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 22
-    
-    local box = Instance.new("TextBox", frame)
-    box.Size = UDim2.new(0.8, 0, 0, 40)
-    box.Position = UDim2.new(0.1, 0, 0.35, 0)
-    box.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    box.TextColor3 = Color3.fromRGB(255,255,255)
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 18
-    box.PlaceholderText = "Clé..."
-    box.Text = ""
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
-    
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0.4, 0, 0, 40)
-    btn.Position = UDim2.new(0.3, 0, 0.65, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 150, 255)
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 18
-    btn.Text = "Valider"
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    
-    local errLabel = Instance.new("TextLabel", frame)
-    errLabel.Size = UDim2.new(1, 0, 0, 25)
-    errLabel.Position = UDim2.new(0, 0, 0.85, 0)
-    errLabel.BackgroundTransparency = 1
-    errLabel.Text = ""
-    errLabel.TextColor3 = Color3.fromRGB(255,70,70)
-    errLabel.Font = Enum.Font.Gotham
-    errLabel.TextSize = 15
-    errLabel.Visible = false
-    
-    local correct = false
-    btn.MouseButton1Click:Connect(function()
-        if box.Text == "mm2" then
-            correct = true
-            screenGui:Destroy()
-        else
-            errLabel.Text = "❌ Clé incorrecte"
-            errLabel.Visible = true
-            box.Text = ""
-        end
-    end)
-    box.FocusLost:Connect(function(enter)
-        if enter and box.Text == "mm2" then
-            correct = true
-            screenGui:Destroy()
-        end
-    end)
-    repeat task.wait() until correct == true
-    print("✅ Clé OK (fallback)")
-else
-    -- Interface AeroUI
-    local Key = "mm2"
-    local player = game.Players.LocalPlayer
-    local playerGui = player.PlayerGui
-    
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KeySystem"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
-    
-    -- Fond sombre
-    local overlay = Instance.new("Frame")
-    overlay.Size = UDim2.new(1, 0, 1, 0)
-    overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    overlay.BackgroundTransparency = 0.5
-    overlay.Parent = screenGui
-    
-    -- Création de la carte avec AeroUI
-    local card = AeroUI:Create("Frame", {
-        Parent = screenGui,
-        Size = UDim2.new(0, 380, 0, 260),
-        Position = UDim2.new(0.5, -190, 0.5, -130),
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0,
-        CornerRadius = UDim.new(0, 16),
-        Shadow = true,
-        ShadowOffset = Vector2.new(0, 6),
-        ShadowBlur = 0.8,
-        ShadowColor = Color3.fromRGB(0, 0, 0),
-        ShadowTransparency = 0.2
-    })
-    
-    -- Rendre la carte draggable
-    local dragging = false
-    local dragStart, startPos
-    
-    card.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = card.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            card.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    -- Icône clé
-    local icon = AeroUI:Create("TextLabel", {
-        Parent = card,
-        Size = UDim2.new(0, 30, 0, 30),
-        Position = UDim2.new(0.05, 0, 0.18, 0),
-        BackgroundTransparency = 1,
-        Text = "🔑",
-        TextColor3 = Color3.fromRGB(50, 50, 70),
-        Font = Enum.Font.SourceSans,
-        TextSize = 24
-    })
-    
-    -- Titre
-    AeroUI:Create("TextLabel", {
-        Parent = card,
-        Size = UDim2.new(0.6, 0, 0, 30),
-        Position = UDim2.new(0.12, 0, 0.18, 0),
-        BackgroundTransparency = 1,
-        Text = "ENTRER VOTRE KEY",
-        TextColor3 = Color3.fromRGB(20, 20, 20),
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-    
-    -- Sous-titre
-    AeroUI:Create("TextLabel", {
-        Parent = card,
-        Size = UDim2.new(0.8, 0, 0, 22),
-        Position = UDim2.new(0.5, 0, 0.35, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Text = "Veuillez saisir votre key pour continuer.",
-        TextColor3 = Color3.fromRGB(130, 130, 130),
-        Font = Enum.Font.SourceSans,
-        TextSize = 14
-    })
-    
-    -- Champ de saisie
-    local box = AeroUI:Create("TextBox", {
-        Parent = card,
-        Size = UDim2.new(0.7, 0, 0, 44),
-        Position = UDim2.new(0.5, 0, 0.55, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(245, 245, 245),
-        BorderSizePixel = 1,
-        BorderColor3 = Color3.fromRGB(200, 200, 200),
-        TextColor3 = Color3.fromRGB(20, 20, 20),
-        Font = Enum.Font.SourceSans,
-        TextSize = 18,
-        PlaceholderText = "Votre key",
-        PlaceholderColor3 = Color3.fromRGB(160, 160, 160),
-        Text = "",
-        ClearTextOnFocus = false,
-        CornerRadius = UDim.new(0, 8)
-    })
-    
-    -- Bouton VALIDER
-    local btn = AeroUI:Create("TextButton", {
-        Parent = card,
-        Size = UDim2.new(0.4, 0, 0, 44),
-        Position = UDim2.new(0.5, 0, 0.78, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(25, 25, 35),
-        BorderSizePixel = 0,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        Text = "VALIDER",
-        CornerRadius = UDim.new(0, 8)
-    })
-    
-    -- Label d'erreur
-    local err = AeroUI:Create("TextLabel", {
-        Parent = card,
-        Size = UDim2.new(0.8, 0, 0, 22),
-        Position = UDim2.new(0.5, 0, 0.93, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Text = "",
-        TextColor3 = Color3.fromRGB(200, 50, 50),
-        Font = Enum.Font.SourceSans,
-        TextSize = 14,
-        Visible = false
-    })
-    
-    -- Animation d'apparition
-    local scale = Instance.new("UIScale")
-    scale.Scale = 0.85
-    scale.Parent = card
-    
-    game:GetService("TweenService"):Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0
-    }):Play()
-    game:GetService("TweenService"):Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        Scale = 1
-    }):Play()
-    
-    -- Effets de survol
-    btn.MouseEnter:Connect(function()
-        game:GetService("TweenService"):Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(50, 50, 60) }):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        game:GetService("TweenService"):Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(25, 25, 35) }):Play()
-    end)
-    
-    box.Focused:Connect(function()
-        game:GetService("TweenService"):Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(30, 30, 40) }):Play()
-    end)
-    box.FocusLost:Connect(function()
-        game:GetService("TweenService"):Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(200, 200, 200) }):Play()
-    end)
-    
-    -- Validation
-    local correct = false
-    
-    local function validateKey()
-        if box.Text == Key then
-            correct = true
-            local fadeOut = game:GetService("TweenService"):Create(card, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
-            fadeOut:Play()
-            local scaleOut = game:GetService("TweenService"):Create(scale, TweenInfo.new(0.2), { Scale = 0.85 })
-            scaleOut:Play()
-            fadeOut.Completed:Connect(function()
-                screenGui:Destroy()
-            end)
-            game:GetService("TweenService"):Create(overlay, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
-        else
-            err.Text = "❌ Clé incorrecte"
-            err.Visible = true
-            box.Text = ""
-            local origPos = box.Position
-            for i = 1, 3 do
-                game:GetService("TweenService"):Create(box, TweenInfo.new(0.05), { Position = origPos + UDim2.new(0.015, 0, 0, 0) }):Play()
-                task.wait(0.05)
-                game:GetService("TweenService"):Create(box, TweenInfo.new(0.05), { Position = origPos - UDim2.new(0.015, 0, 0, 0) }):Play()
-                task.wait(0.05)
-            end
-            game:GetService("TweenService"):Create(box, TweenInfo.new(0.05), { Position = origPos }):Play()
-        end
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        card.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
-    
-    btn.MouseButton1Click:Connect(validateKey)
-    box.FocusLost:Connect(function(enter)
-        if enter then validateKey() end
-    end)
-    
-    repeat task.wait() until correct == true
-    print("✅ Clé OK (AeroUI)")
+end)
+
+-- === ANIMATIONS D'APPARITION ===
+local scale = Instance.new("UIScale")
+scale.Scale = 0.85
+scale.Parent = card
+
+TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    BackgroundTransparency = 0
+}):Play()
+TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    Scale = 1
+}):Play()
+
+-- === EFFETS DE SURVOL ===
+btn.MouseEnter:Connect(function()
+    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(60, 60, 80) }):Play()
+end)
+btn.MouseLeave:Connect(function()
+    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(35, 35, 50) }):Play()
+end)
+
+box.Focused:Connect(function()
+    TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(35, 35, 50) }):Play()
+end)
+box.FocusLost:Connect(function()
+    TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(200, 200, 200) }):Play()
+end)
+
+-- === LOGIQUE DE VALIDATION ===
+local correct = false
+
+local function validateKey()
+    if box.Text == Key then
+        correct = true
+        -- Animation de sortie
+        local fadeOut = TweenService:Create(card, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
+        fadeOut:Play()
+        local scaleOut = TweenService:Create(scale, TweenInfo.new(0.2), { Scale = 0.85 })
+        scaleOut:Play()
+        fadeOut.Completed:Connect(function()
+            screenGui:Destroy()
+        end)
+        TweenService:Create(overlay, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
+    else
+        err.Text = "❌ Clé incorrecte"
+        err.Visible = true
+        box.Text = ""
+        -- Secousse du champ
+        local origPos = box.Position
+        for i = 1, 3 do
+            TweenService:Create(box, TweenInfo.new(0.05), { Position = origPos + UDim2.new(0.015, 0, 0, 0) }):Play()
+            task.wait(0.05)
+            TweenService:Create(box, TweenInfo.new(0.05), { Position = origPos - UDim2.new(0.015, 0, 0, 0) }):Play()
+            task.wait(0.05)
+        end
+        TweenService:Create(box, TweenInfo.new(0.05), { Position = origPos }):Play()
+    end
 end
+
+btn.MouseButton1Click:Connect(validateKey)
+box.FocusLost:Connect(function(enter)
+    if enter then validateKey() end
+end)
+
+-- === ATTENDRE LA CLÉ ===
+repeat task.wait() until correct == true
+print("✅ Clé correcte !")
 
 -- ============================================
 -- CHARGEMENT RAYFIELD
@@ -305,7 +257,7 @@ if not success or not Rayfield then
 end
 
 -- ============================================
--- VARIABLES (ESP, FLY, TIR, ETC.)
+-- VARIABLES
 -- ============================================
 local player = game.Players.LocalPlayer
 local Players = game:GetService("Players")
@@ -645,7 +597,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé moderne (AeroUI)\n✅ ESP joueurs + armes au sol\n✅ Tir par clic simulé" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé moderne (sans librairie)\n✅ ESP joueurs + armes au sol\n✅ Tir par clic simulé" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -820,5 +772,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface moderne (AeroUI) – Touche de tir : R", Duration = 4 })
-print("✅ Script complet avec AeroUI chargé !")
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface moderne (sans librairie) – Touche de tir : R", Duration = 4 })
+print("✅ Script complet chargé !")
