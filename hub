@@ -549,6 +549,8 @@ local ESPTab = Window:CreateTab("👁️ ESP")
 local CombatTab = Window:CreateTab("⚔️ Combat")
 local WorldTab = Window:CreateTab("🌍 World")
 local MiscTab = Window:CreateTab("🔧 Misc")
+-- NEW TAB "💾 Save" before Settings
+local SaveTab = Window:CreateTab("💾 Save")
 local SettingsTab = Window:CreateTab("⚙️ Settings")
 
 MainTab:CreateParagraph({ Title = "Glacie Hub", Content = "✅ Custom key system\n✅ ESP (Players + Guns)\n✅ Shoot Sheriff (auto-aim)\n🔫 Customizable shoot key" })
@@ -616,7 +618,6 @@ ESPTab:CreateToggle({
 
 -- Combat
 CombatTab:CreateSection("🎯 Shoot Sheriff")
-
 CombatTab:CreateToggle({
     Name = "🎯 Shoot Sheriff",
     CurrentValue = false,
@@ -630,7 +631,6 @@ CombatTab:CreateToggle({
         })
     end
 })
-
 CombatTab:CreateInput({
     Name = "⌨️ Shoot key",
     PlaceholderText = "R",
@@ -689,11 +689,87 @@ MiscTab:CreateButton({ Name = "🔄 Reset", Callback = function() if player.Char
 MiscTab:CreateButton({ Name = "❤️ Heal", Callback = function() if player.Character and player.Character.Humanoid then player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth end end })
 MiscTab:CreateButton({ Name = "🔄 Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, player) end })
 
--- Settings
+-- ============================================
+-- 💾 SAVE TAB (NEW)
+-- ============================================
+SaveTab:CreateSection("💾 Configuration Management")
+SaveTab:CreateParagraph({ Title = "Rayfield Auto‑Save", Content = "Your settings are automatically saved to a local file.\nUse the buttons below to manually save, load, or reset." })
+
+SaveTab:CreateButton({
+    Name = "💾 Save Current Config",
+    Callback = function()
+        -- Rayfield saves automatically, but we can trigger a manual save if the method exists
+        if Rayfield.SaveConfiguration then
+            Rayfield:SaveConfiguration()
+            Rayfield:Notify({ Title = "✅ Saved", Content = "Configuration saved successfully!", Duration = 2 })
+        else
+            Rayfield:Notify({ Title = "ℹ️ Info", Content = "Auto‑save is always enabled. No manual save needed.", Duration = 2 })
+        end
+    end
+})
+
+SaveTab:CreateButton({
+    Name = "📂 Load Config (from file)",
+    Callback = function()
+        if Rayfield.LoadConfiguration then
+            Rayfield:LoadConfiguration()
+            -- Refresh all flags after loading
+            for flag, value in pairs(state) do
+                pcall(function() Rayfield:SetValue(flag, value) end)
+            end
+            -- Also refresh ESP and other stuff
+            updatePlayerColors()
+            if state.GunESP then scanGuns() end
+            Rayfield:Notify({ Title = "✅ Loaded", Content = "Configuration loaded from file!", Duration = 2 })
+        else
+            Rayfield:Notify({ Title = "ℹ️ Info", Content = "Auto‑load is automatic on script start.", Duration = 2 })
+        end
+    end
+})
+
+SaveTab:CreateButton({
+    Name = "🔄 Reset Config to Defaults",
+    Callback = function()
+        -- Reset all toggles and sliders to default values
+        for k, v in pairs(state) do
+            if type(v) == "boolean" then
+                state[k] = false
+                pcall(function() Rayfield:SetValue(k, false) end)
+            end
+        end
+        state.WalkSpeed = 16
+        state.JumpPower = 50
+        state.ShootKey = "R"
+        state.flingTargetName = ""
+        pcall(function() Rayfield:SetValue("WalkSpeed", 16) end)
+        pcall(function() Rayfield:SetValue("JumpPower", 50) end)
+        -- Reset player stats
+        if player.Character and player.Character.Humanoid then
+            player.Character.Humanoid.WalkSpeed = 16
+            player.Character.Humanoid.JumpPower = 50
+        end
+        -- Clear highlights
+        for _, h in pairs(playerHighlights) do pcall(function() h:Destroy() end) end
+        playerHighlights = {}
+        for _, h in pairs(gunHighlights) do pcall(function() h:Destroy() end) end
+        gunHighlights = {}
+        if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
+        Rayfield:Notify({ Title = "✅ Reset", Content = "All settings reset to default.", Duration = 2 })
+    end
+})
+
+SaveTab:CreateButton({
+    Name = "🔄 Reload Script (Rejoin)",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+    end
+})
+
+-- Settings (unchanged)
 SettingsTab:CreateSection("⚙️ Interface")
 SettingsTab:CreateButton({ Name = "❌ Close", Callback = function() Window:Destroy() end })
 SettingsTab:CreateButton({
-    Name = "🔄 Reset everything",
+    Name = "🔄 Reset everything (same as Save tab)",
     Callback = function()
         for k, v in pairs(state) do
             if type(v) == "boolean" then
