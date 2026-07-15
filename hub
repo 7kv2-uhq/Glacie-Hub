@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - VERSION SANS CRASH (anti‑caméra)
+    MM2 HUB - Tir par clic simulé (sans caméra ni orientation)
     Clé : mm2
 ]]
 
@@ -7,95 +7,68 @@
 -- SYSTÈME DE CLÉ
 -- ============================================
 local Key = "mm2"
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "KeySystem"
-screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+local sg = Instance.new("ScreenGui")
+sg.Name = "KeySystem"
+sg.Parent = game.Players.LocalPlayer.PlayerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 200)
-frame.Position = UDim2.new(0.5, -175, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
-frame.Parent = screenGui
+local f = Instance.new("Frame")
+f.Size = UDim2.new(0, 350, 0, 200)
+f.Position = UDim2.new(0.5, -175, 0.5, -100)
+f.BackgroundColor3 = Color3.fromRGB(30,35,50)
+f.Parent = sg
+Instance.new("UICorner", f).CornerRadius = UDim.new(0,12)
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = frame
+local t = Instance.new("TextLabel", f)
+t.Size = UDim2.new(1,0,0,45)
+t.BackgroundTransparency = 1
+t.Text = "🔑 Entrez la clé"
+t.TextColor3 = Color3.fromRGB(255,255,255)
+t.Font = Enum.Font.GothamBold
+t.TextSize = 22
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 45)
-title.BackgroundTransparency = 1
-title.Text = "🔑 Entrez la clé"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.Parent = frame
+local box = Instance.new("TextBox", f)
+box.Size = UDim2.new(0.8,0,0,40)
+box.Position = UDim2.new(0.1,0,0.35,0)
+box.BackgroundColor3 = Color3.fromRGB(20,25,40)
+box.TextColor3 = Color3.fromRGB(255,255,255)
+box.Font = Enum.Font.Gotham
+box.TextSize = 18
+box.PlaceholderText = "Entrez la clé..."
+box.PlaceholderColor3 = Color3.fromRGB(150,160,180)
+box.Text = ""
+Instance.new("UICorner", box).CornerRadius = UDim.new(0,8)
 
-local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(0.8, 0, 0, 40)
-textBox.Position = UDim2.new(0.1, 0, 0.35, 0)
-textBox.BackgroundColor3 = Color3.fromRGB(20, 25, 40)
-textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-textBox.Font = Enum.Font.Gotham
-textBox.TextSize = 18
-textBox.PlaceholderText = "Entrez la clé..."
-textBox.PlaceholderColor3 = Color3.fromRGB(150, 160, 180)
-textBox.Text = ""
-textBox.Parent = frame
+local btn = Instance.new("TextButton", f)
+btn.Size = UDim2.new(0.4,0,0,40)
+btn.Position = UDim2.new(0.3,0,0.65,0)
+btn.BackgroundColor3 = Color3.fromRGB(60,140,255)
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 18
+btn.Text = "Valider"
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
-local textCorner = Instance.new("UICorner")
-textCorner.CornerRadius = UDim.new(0, 8)
-textCorner.Parent = textBox
-
-local validateBtn = Instance.new("TextButton")
-validateBtn.Size = UDim2.new(0.4, 0, 0, 40)
-validateBtn.Position = UDim2.new(0.3, 0, 0.65, 0)
-validateBtn.BackgroundColor3 = Color3.fromRGB(60, 140, 255)
-validateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-validateBtn.Font = Enum.Font.GothamBold
-validateBtn.TextSize = 18
-validateBtn.Text = "Valider"
-validateBtn.Parent = frame
-
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 8)
-btnCorner.Parent = validateBtn
-
-local errorLabel = Instance.new("TextLabel")
-errorLabel.Size = UDim2.new(1, 0, 0, 25)
-errorLabel.Position = UDim2.new(0, 0, 0.85, 0)
-errorLabel.BackgroundTransparency = 1
-errorLabel.Text = ""
-errorLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
-errorLabel.Font = Enum.Font.Gotham
-errorLabel.TextSize = 15
-errorLabel.Visible = false
-errorLabel.Parent = frame
+local err = Instance.new("TextLabel", f)
+err.Size = UDim2.new(1,0,0,25)
+err.Position = UDim2.new(0,0,0.85,0)
+err.BackgroundTransparency = 1
+err.Text = ""
+err.TextColor3 = Color3.fromRGB(255,70,70)
+err.Font = Enum.Font.Gotham
+err.TextSize = 15
+err.Visible = false
 
 local correct = false
-
-validateBtn.MouseButton1Click:Connect(function()
-    if textBox.Text == Key then
-        correct = true
-        screenGui:Destroy()
-    else
-        errorLabel.Text = "❌ Clé incorrecte"
-        errorLabel.Visible = true
-        textBox.Text = ""
-    end
+btn.MouseButton1Click:Connect(function()
+    if box.Text == Key then correct = true; sg:Destroy()
+    else err.Text = "❌ Clé incorrecte"; err.Visible = true; box.Text = "" end
 end)
-
-textBox.FocusLost:Connect(function(enter)
-    if enter and textBox.Text == Key then
-        correct = true
-        screenGui:Destroy()
-    end
-end)
-
-repeat task.wait() until correct == true
-print("✅ Clé correcte !")
+box.FocusLost:Connect(function(enter) if enter and box.Text == Key then correct = true; sg:Destroy() end end)
+repeat task.wait() until correct
+print("✅ Clé OK")
 
 -- ============================================
--- CHARGEMENT RAYFIELD
+-- RAYFIELD
 -- ============================================
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 if not Rayfield then return end
@@ -107,6 +80,7 @@ local player = game.Players.LocalPlayer
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local mouse = player:GetMouse()
 
 local state = {
     Fly = false,
@@ -115,6 +89,8 @@ local state = {
     SheriffESP = false,
     InnocentESP = false,
     GunESP = false,
+    ShootEnabled = false,
+    ShootKey = "R",
     WalkSpeed = 16,
     JumpPower = 50,
     flingTargetName = ""
@@ -182,52 +158,44 @@ local function clearESP(tableName)
 end
 
 local function refreshESP()
-    -- Murderer
     if state.MurdererESP then
         clearESP("Murderer")
         local m = getMurderer()
         if m and m.Character then
-            local h = createESP(m.Character, Color3.fromRGB(255, 0, 0))
+            local h = createESP(m.Character, Color3.fromRGB(255,0,0))
             if h then table.insert(espObjects.Murderer, h) end
         end
     end
-
-    -- Sheriff
     if state.SheriffESP then
         clearESP("Sheriff")
         local s = getSheriff()
         if s and s.Character then
-            local h = createESP(s.Character, Color3.fromRGB(0, 120, 255))
+            local h = createESP(s.Character, Color3.fromRGB(0,120,255))
             if h then table.insert(espObjects.Sheriff, h) end
         end
     end
-
-    -- Innocents
     if state.InnocentESP then
         clearESP("Innocents")
         local murderer = getMurderer()
         local sheriff = getSheriff()
         for _, v in pairs(Players:GetPlayers()) do
             if v ~= player and v.Character and v ~= murderer and v ~= sheriff then
-                local h = createESP(v.Character, Color3.fromRGB(255, 200, 0))
+                local h = createESP(v.Character, Color3.fromRGB(255,200,0))
                 if h then table.insert(espObjects.Innocents, h) end
             end
         end
     end
-
-    -- Guns
     if state.GunESP then
         clearESP("Guns")
         for _, gun in pairs(getGuns()) do
             if gun and gun.Parent then
-                local h = createESP(gun, Color3.fromRGB(0, 255, 255))
+                local h = createESP(gun, Color3.fromRGB(0,255,255))
                 if h then table.insert(espObjects.Guns, h) end
             end
         end
     end
 end
 
--- Rafraîchissement automatique à chaque apparition/disparition
 local function onCharacterAdded(char)
     char:WaitForChild("Humanoid")
     task.wait(0.2)
@@ -239,14 +207,11 @@ local function onPlayerAdded(p)
 end
 
 for _, p in pairs(Players:GetPlayers()) do
-    if p ~= player then
-        p.CharacterAdded:Connect(onCharacterAdded)
-    end
+    if p ~= player then p.CharacterAdded:Connect(onCharacterAdded) end
 end
 Players.PlayerAdded:Connect(onPlayerAdded)
 player.CharacterAdded:Connect(onCharacterAdded)
 
--- Application des stats
 local function applyStats(char)
     if not char then return end
     local hum = char:FindFirstChild("Humanoid")
@@ -260,11 +225,10 @@ local function applyStats(char)
         end
     end
 end
-
 player.CharacterAdded:Connect(applyStats)
 
 -- ============================================
--- FLY (mouvement continu)
+-- FLY
 -- ============================================
 RunService.Heartbeat:Connect(function()
     if not state.Fly or not player.Character then return end
@@ -277,27 +241,17 @@ RunService.Heartbeat:Connect(function()
         local hum = player.Character:FindFirstChild("Humanoid")
         if hum then hum.PlatformStand = true end
     end
-
     local dir = Vector3.new(0,0,0)
-    local speed = 60
-    if flyKeys.W then dir = dir + hrp.CFrame.LookVector
-    elseif flyKeys.S then dir = dir - hrp.CFrame.LookVector
-    end
-    if flyKeys.A then dir = dir - hrp.CFrame.RightVector
-    elseif flyKeys.D then dir = dir + hrp.CFrame.RightVector
-    end
-    if flyKeys.Space then dir = dir + Vector3.new(0,1,0)
-    elseif flyKeys.Shift then dir = dir - Vector3.new(0,1,0)
-    end
-
-    if dir ~= Vector3.new(0,0,0) then
-        bodyVelocity.Velocity = dir.Unit * speed
-    else
-        bodyVelocity.Velocity = Vector3.new(0,0,0)
-    end
+    if flyKeys.W then dir = dir + hrp.CFrame.LookVector end
+    if flyKeys.S then dir = dir - hrp.CFrame.LookVector end
+    if flyKeys.A then dir = dir - hrp.CFrame.RightVector end
+    if flyKeys.D then dir = dir + hrp.CFrame.RightVector end
+    if flyKeys.Space then dir = dir + Vector3.new(0,1,0) end
+    if flyKeys.Shift then dir = dir - Vector3.new(0,1,0) end
+    bodyVelocity.Velocity = (dir ~= Vector3.new(0,0,0)) and dir.Unit * 60 or Vector3.new(0,0,0)
 end)
 
-UserInputService.InputBegan:Connect(function(input, gp)
+UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
     if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
@@ -307,7 +261,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
 end)
 
-UserInputService.InputEnded:Connect(function(input, gp)
+UserInputService.InputEnded:Connect(function(input,gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
     if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
@@ -315,6 +269,52 @@ UserInputService.InputEnded:Connect(function(input, gp)
     if input.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
     if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false end
     if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
+end)
+
+-- ============================================
+-- TIR PAR CLIC SIMULÉ (sans caméra ni orientation)
+-- ============================================
+local function shootAtMurderer()
+    local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
+    if not gun then
+        Rayfield:Notify({Title="❌ Pas de pistolet", Content="Tu n'es pas sheriff", Duration=2})
+        return
+    end
+
+    local murderer = getMurderer()
+    if not murderer or not murderer.Character then
+        Rayfield:Notify({Title="❌ Murderer", Content="Introuvable", Duration=2})
+        return
+    end
+
+    local targetHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then
+        Rayfield:Notify({Title="❌ Erreur", Content="Cible introuvable", Duration=2})
+        return
+    end
+
+    -- Position du buste du murderer à l'écran
+    local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(targetHRP.Position + Vector3.new(0, 1.5, 0))
+    if not onScreen then
+        Rayfield:Notify({Title="❌ Hors écran", Content="Le murderer n'est pas visible", Duration=2})
+        return
+    end
+
+    -- Simuler un clic à cette position (sans bouger la caméra)
+    mouse.X = screenPos.X
+    mouse.Y = screenPos.Y
+    task.wait(0.02) -- laisser le temps au curseur de se placer
+    mouse1click()
+
+    Rayfield:Notify({Title="🔫 Tir !", Content="Tir sur "..murderer.Name, Duration=1})
+end
+
+-- Détection de la touche de tir
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp or not state.ShootEnabled then return end
+    if input.KeyCode.Name == state.ShootKey then
+        shootAtMurderer()
+    end
 end)
 
 -- ============================================
@@ -349,22 +349,23 @@ end
 -- INTERFACE RAYFIELD
 -- ============================================
 local Window = Rayfield:CreateWindow({
-    Name = "🔪 MM2 HUB (Sans Caméra)",
+    Name = "🔪 MM2 HUB",
     LoadingTitle = "Chargement...",
     LoadingSubtitle = "Clé : mm2",
-    ConfigurationSaving = { Enabled = true, FolderName = "MM2Config", FileName = "MM2HubSafe" },
+    ConfigurationSaving = { Enabled = true, FolderName = "MM2Config", FileName = "MM2Hub" },
     KeySystem = false
 })
 
 local MainTab = Window:CreateTab("🏠 Accueil")
 local PlayerTab = Window:CreateTab("👤 Joueur")
 local ESPTab = Window:CreateTab("👁️ ESP")
+local CombatTab = Window:CreateTab("⚔️ Combat")
 local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
 -- Accueil
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB (sans crash)", Content = "✅ Camera Lock / Shoot Sheriff supprimés (causaient le crash).\n🔴🟡🔵 ESP fonctionnel.\n✈️ Fly fluide avec les touches WASD + Espace/Maj." })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Tir par clic simulé (sans caméra ni orientation)\n🔴🟡🔵 ESP\n✈️ Fly / Noclip\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -418,6 +419,30 @@ ESPTab:CreateToggle({
 ESPTab:CreateToggle({
     Name = "🔫 ESP Armes", CurrentValue = false, Flag = "GunESP",
     Callback = function(v) state.GunESP = v; refreshESP() end
+})
+
+-- Combat
+CombatTab:CreateSection("🔫 Tir automatique")
+CombatTab:CreateToggle({
+    Name = "🎯 Activer le tir",
+    CurrentValue = false,
+    Flag = "ShootToggle",
+    Callback = function(v)
+        state.ShootEnabled = v
+        Rayfield:Notify({ Title = "Tir", Content = v and "✅ Activé (touche "..state.ShootKey..")" or "❌ Désactivé", Duration = 2 })
+    end
+})
+CombatTab:CreateInput({
+    Name = "⌨️ Touche de tir",
+    PlaceholderText = "R",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(t)
+        local key = string.upper(string.sub(t, 1, 1))
+        if key:match("%a") then
+            state.ShootKey = key
+            Rayfield:Notify({ Title = "Touche", Content = "Touche : " .. key, Duration = 2 })
+        end
+    end
 })
 
 -- Monde
@@ -507,5 +532,5 @@ SettingsTab:CreateButton({
 -- ============================================
 task.wait(0.5)
 refreshESP()
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Version sans crash (caméra désactivée)", Duration = 4 })
-print("✅ Script sécurisé chargé !")
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Tir par clic simulé – Touche par défaut: R", Duration = 4 })
+print("✅ Script avec tir par clic chargé !")
