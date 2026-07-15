@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - ESP fiable + Tir par clic
+    MM2 HUB - ESP fiable (joueurs + armes) + Tir par clic
     Clé : mm2
 ]]
 
@@ -100,17 +100,17 @@ local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
 -- ============================================
--- ESP SIMPLE ET FIABLE
+-- ESP SIMPLE ET FIABLE (joueurs + armes)
 -- ============================================
-local highlights = {}  -- clé = joueur, valeur = Highlight
+local playerHighlights = {}  -- clé = joueur, valeur = Highlight
+local gunHighlights = {}     -- clé = objet (Tool/Model), valeur = Highlight
 
 -- Créer un Highlight pour un joueur
-local function createHighlight(plr)
+local function createPlayerHighlight(plr)
     if not plr or not plr.Character then return end
-    -- Supprimer l'ancien s'il existe
-    if highlights[plr] then
-        pcall(function() highlights[plr]:Destroy() end)
-        highlights[plr] = nil
+    if playerHighlights[plr] then
+        pcall(function() playerHighlights[plr]:Destroy() end)
+        playerHighlights[plr] = nil
     end
     local h = Instance.new("Highlight")
     h.Parent = plr.Character
@@ -118,13 +118,32 @@ local function createHighlight(plr)
     h.OutlineTransparency = 0
     h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     h.Enabled = false
-    highlights[plr] = h
+    playerHighlights[plr] = h
+end
+
+-- Créer un Highlight pour une arme au sol
+local function createGunHighlight(gunObj)
+    if not gunObj or not gunObj.Parent then return end
+    -- Si un Highlight existe déjà sur cet objet, on le supprime
+    if gunHighlights[gunObj] then
+        pcall(function() gunHighlights[gunObj]:Destroy() end)
+        gunHighlights[gunObj] = nil
+    end
+    local h = Instance.new("Highlight")
+    h.Parent = gunObj
+    h.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
+    h.FillTransparency = 0.3
+    h.OutlineColor = Color3.fromRGB(0, 255, 255)
+    h.OutlineTransparency = 0
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Enabled = true
+    gunHighlights[gunObj] = h
 end
 
 -- Quand un joueur spawn, on crée son Highlight
 local function onCharacterAdded(plr, char)
     task.wait(0.3)
-    createHighlight(plr)
+    createPlayerHighlight(plr)
     updateESP()
 end
 
@@ -134,7 +153,7 @@ for _, plr in pairs(Players:GetPlayers()) do
         plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
         if plr.Character then
             task.wait(0.1)
-            createHighlight(plr)
+            createPlayerHighlight(plr)
         end
     end
 end
@@ -146,15 +165,15 @@ end)
 
 -- Joueur qui quitte
 Players.PlayerRemoving:Connect(function(plr)
-    if highlights[plr] then
-        pcall(function() highlights[plr]:Destroy() end)
-        highlights[plr] = nil
+    if playerHighlights[plr] then
+        pcall(function() playerHighlights[plr]:Destroy() end)
+        playerHighlights[plr] = nil
     end
 end)
 
--- Mise à jour des couleurs (sans destruction)
+-- Mise à jour complète (couleurs joueurs + armes)
 function updateESP()
-    -- Trouver le murderer et le sheriff
+    -- === JOUEURS ===
     local murderer = nil
     local sheriff = nil
     for _, plr in pairs(Players:GetPlayers()) do
@@ -166,10 +185,9 @@ function updateESP()
         end
     end
 
-    -- Appliquer les couleurs
     for _, plr in pairs(Players:GetPlayers()) do
         if plr == player then continue end
-        local h = highlights[plr]
+        local h = playerHighlights[plr]
         if not h then continue end
 
         local color = nil
@@ -190,31 +208,64 @@ function updateESP()
         end
     end
 
-    -- Armes au sol (version simple)
+    -- === ARMES AU SOL ===
     if state.GunESP then
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Tool") and v.Name == "Gun" then
-                if v.Parent and not v.Parent:IsA("Backpack") and not v.Parent:IsA("Character") then
-                    if not v:FindFirstChild("GunHighlight") then
-                        local h = Instance.new("Highlight")
-                        h.Name = "GunHighlight"
-                        h.Parent = v
-                        h.FillColor = Color3.fromRGB(0,255,255)
-                        h.FillTransparency = 0.3
-                        h.OutlineColor = Color3.fromRGB(0,255,255)
-                        h.OutlineTransparency = 0
-                        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        -- Parcourir tous les objets du workspace
+        for _, obj in pairs(workspace:GetDescendants()) do
+            -- Vérifier si l'objet est une arme (Tool nommé "Gun" ou contenant "Gun" dans son nom)
+            local isGun = false
+            local targetObj = nil
+            if obj:IsA("Tool") and string.find(obj.Name, "Gun") then
+                isGun = true
+                targetObj = obj
+            elseif obj:IsA("Model") and string.find(obj.Name, "Gun") then
+                -- Parfois les armes sont des modèles avec un Tool à l'intérieur
+                isGun = true
+                targetObj = obj
+            end
+
+            if isGun and targetObj then
+                -- Vérifier que l'arme n'est pas dans un joueur (Backpack ou Character)
+                local parent = targetObj.Parent
+                local isInPlayer = false
+                while parent do
+                    if parent:IsA("Backpack") or parent:IsA("Character") or parent:IsA("Player") then
+                        isInPlayer = true
+                        break
+                    end
+                    parent = parent.Parent
+                end
+                if not isInPlayer then
+                    -- Créer le Highlight si pas déjà fait
+                    if not gunHighlights[targetObj] then
+                        createGunHighlight(targetObj)
+                    else
+                        -- S'assurer qu'il est activé
+                        gunHighlights[targetObj].Enabled = true
+                    end
+                else
+                    -- Si l'arme est dans un joueur, on supprime son Highlight
+                    if gunHighlights[targetObj] then
+                        pcall(function() gunHighlights[targetObj]:Destroy() end)
+                        gunHighlights[targetObj] = nil
                     end
                 end
             end
         end
-    else
-        -- Supprimer les Highlights des armes
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v.Name == "GunHighlight" then
-                pcall(function() v:Destroy() end)
+
+        -- Nettoyer les Highlights des armes qui n'existent plus
+        for gunObj, h in pairs(gunHighlights) do
+            if not gunObj.Parent then
+                pcall(function() h:Destroy() end)
+                gunHighlights[gunObj] = nil
             end
         end
+    else
+        -- Supprimer tous les Highlights des armes
+        for gunObj, h in pairs(gunHighlights) do
+            pcall(function() h:Destroy() end)
+        end
+        gunHighlights = {}
     end
 end
 
@@ -378,7 +429,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP simple et fiable\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP joueurs + armes au sol (cyan)\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -430,7 +481,7 @@ ESPTab:CreateToggle({
     Callback = function(v) state.InnocentESP = v; updateESP() end
 })
 ESPTab:CreateToggle({
-    Name = "🔫 ESP Armes", CurrentValue = false, Flag = "GunESP",
+    Name = "🔫 ESP Armes (cyan)", CurrentValue = false, Flag = "GunESP",
     Callback = function(v) state.GunESP = v; updateESP() end
 })
 
@@ -552,8 +603,10 @@ SettingsTab:CreateButton({
             player.Character.Humanoid.JumpPower = 50
         end
         -- Supprimer tous les Highlights
-        for _, h in pairs(highlights) do pcall(function() h:Destroy() end) end
-        highlights = {}
+        for _, h in pairs(playerHighlights) do pcall(function() h:Destroy() end) end
+        playerHighlights = {}
+        for _, h in pairs(gunHighlights) do pcall(function() h:Destroy() end) end
+        gunHighlights = {}
         if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
         Rayfield:Notify({ Title = "✅", Content = "Réinitialisé", Duration = 2 })
     end
@@ -564,5 +617,5 @@ SettingsTab:CreateButton({
 -- ============================================
 task.wait(0.5)
 updateESP()
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP fiable – Touche de tir : R", Duration = 4 })
-print("✅ Script avec ESP simple chargé !")
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP armes au sol (cyan) – Touche de tir : R", Duration = 4 })
+print("✅ Script avec armes fonctionnel !")
