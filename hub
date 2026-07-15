@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (sans orientation)
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (clic simulé)
     Clé : mm2
 ]]
 
@@ -446,7 +446,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (sans orientation)
+-- SHOOT SHERIFF (clic simulé avec UserInputService)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -461,16 +461,35 @@ local function shootSheriff()
         return
     end
 
+    local target = murderer.Character:FindFirstChild("HumanoidRootPart") or murderer.Character:FindFirstChild("Head")
+    if not target then
+        Rayfield:Notify({ Title = "❌ Cible", Content = "Impossible de viser", Duration = 2 })
+        return
+    end
+
     -- Équiper le pistolet
     if gun.Parent ~= player.Character then
         gun.Parent = player.Character
         task.wait(0.1)
     end
 
-    -- Tirer (dans la direction actuelle du personnage)
-    gun:Activate()
-    task.wait(0.05)
-    gun:Deactivate()
+    -- Position du murderer à l'écran
+    local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(target.Position + Vector3.new(0, 1.5, 0))
+    if not onScreen then
+        Rayfield:Notify({ Title = "❌ Hors écran", Content = "Le murderer n'est pas visible", Duration = 2 })
+        return
+    end
+
+    -- Simuler un clic gauche à la position du murderer
+    local inputService = game:GetService("UserInputService")
+    local mousePos = Vector2.new(screenPos.X, screenPos.Y)
+    
+    -- Déplacer le curseur
+    inputService.MousePosition = mousePos
+    task.wait(0.02)
+    
+    -- Simuler le clic
+    inputService:InputBegan(Enum.UserInputType.MouseButton1, false)
 
     Rayfield:Notify({
         Title = "🔫 Tir !",
@@ -533,7 +552,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (sans orientation)" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (clic simulé)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -704,5 +723,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (sans orientation)", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (clic simulé)", Duration = 4 })
 print("✅ Script complet chargé !")
