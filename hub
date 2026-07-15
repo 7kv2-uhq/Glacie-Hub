@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (clic simulé)
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (RemoteEvent)
     Clé : mm2
 ]]
 
@@ -446,7 +446,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (clic simulé avec UserInputService)
+-- SHOOT SHERIFF (avec RemoteEvent)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -473,29 +473,49 @@ local function shootSheriff()
         task.wait(0.1)
     end
 
-    -- Position du murderer à l'écran
-    local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(target.Position + Vector3.new(0, 1.5, 0))
-    if not onScreen then
-        Rayfield:Notify({ Title = "❌ Hors écran", Content = "Le murderer n'est pas visible", Duration = 2 })
-        return
+    -- Chercher le RemoteEvent de tir
+    local remote = nil
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    
+    -- Parcourir ReplicatedStorage
+    for _, obj in pairs(replicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") and (string.find(obj.Name, "Shoot") or string.find(obj.Name, "Fire") or string.find(obj.Name, "Gun")) then
+            remote = obj
+            break
+        end
+    end
+    
+    -- Si pas trouvé, chercher dans le tool
+    if not remote then
+        for _, obj in pairs(gun:GetDescendants()) do
+            if obj:IsA("RemoteEvent") and (string.find(obj.Name, "Shoot") or string.find(obj.Name, "Fire")) then
+                remote = obj
+                break
+            end
+        end
     end
 
-    -- Simuler un clic gauche à la position du murderer
-    local inputService = game:GetService("UserInputService")
-    local mousePos = Vector2.new(screenPos.X, screenPos.Y)
-    
-    -- Déplacer le curseur
-    inputService.MousePosition = mousePos
-    task.wait(0.02)
-    
-    -- Simuler le clic
-    inputService:InputBegan(Enum.UserInputType.MouseButton1, false)
-
-    Rayfield:Notify({
-        Title = "🔫 Tir !",
-        Content = "Tu as tiré sur " .. murderer.Name,
-        Duration = 1
-    })
+    if remote then
+        -- Invoquer le RemoteEvent avec la position de la cible
+        pcall(function()
+            remote:FireServer(target.Position)
+        end)
+        Rayfield:Notify({
+            Title = "🔫 Tir !",
+            Content = "Tu as tiré sur " .. murderer.Name,
+            Duration = 1
+        })
+    else
+        -- Fallback : méthode classique activate/deactivate
+        gun:Activate()
+        task.wait(0.1)
+        gun:Deactivate()
+        Rayfield:Notify({
+            Title = "🔫 Tir (fallback)",
+            Content = "Tu as tiré sur " .. murderer.Name,
+            Duration = 1
+        })
+    end
 end
 
 UserInputService.InputBegan:Connect(function(input, gp)
@@ -552,7 +572,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (clic simulé)" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (RemoteEvent)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -723,5 +743,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (clic simulé)", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (RemoteEvent)", Duration = 4 })
 print("✅ Script complet chargé !")
