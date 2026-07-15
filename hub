@@ -1,10 +1,10 @@
 --[[
-    MM2 HUB - Interface clé draggable + tout le reste
+    MM2 HUB - Interface clé minimaliste + tout le reste
     Clé : mm2
 ]]
 
 -- ============================================
--- INTERFACE DE CLÉ (inspirée de l'image)
+-- INTERFACE DE CLÉ (exactement comme sur l'image)
 -- ============================================
 local Key = "mm2"
 local TweenService = game:GetService("TweenService")
@@ -23,18 +23,18 @@ screenGui.Parent = playerGui
 local overlay = Instance.new("Frame")
 overlay.Size = UDim2.new(1, 0, 1, 0)
 overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-overlay.BackgroundTransparency = 0.6
+overlay.BackgroundTransparency = 0.5
 overlay.Parent = screenGui
 
 -- Carte principale (blanche)
 local card = Instance.new("Frame")
-card.Size = UDim2.new(0, 360, 0, 280)
-card.Position = UDim2.new(0.5, -180, 0.5, -140)
+card.Size = UDim2.new(0, 360, 0, 250)
+card.Position = UDim2.new(0.5, -180, 0.5, -125)
 card.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 card.BackgroundTransparency = 0
 card.Parent = screenGui
 
--- Rendre la carte draggable (déplaçable)
+-- === Rendre la carte draggable ===
 local dragging = false
 local dragStart, startPos
 
@@ -60,22 +60,22 @@ end)
 
 -- Coins arrondis
 local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 16)
+cardCorner.CornerRadius = UDim.new(0, 12)
 cardCorner.Parent = card
 
 -- Ombre portée (cadre noir derrière)
 local shadow = Instance.new("Frame")
-shadow.Size = UDim2.new(0, 370, 0, 290)
-shadow.Position = UDim2.new(0.5, -185 + 5, 0.5, -145 + 5)
+shadow.Size = UDim2.new(0, 370, 0, 260)
+shadow.Position = UDim2.new(0.5, -185 + 6, 0.5, -130 + 6)
 shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-shadow.BackgroundTransparency = 0.15
+shadow.BackgroundTransparency = 0.1
 shadow.ZIndex = 0
 shadow.Parent = screenGui
 local shadowCorner = Instance.new("UICorner")
-shadowCorner.CornerRadius = UDim.new(0, 16)
+shadowCorner.CornerRadius = UDim.new(0, 12)
 shadowCorner.Parent = shadow
 
--- Titre "ENTRER VOTRE KEY" (en noir, gras)
+-- Titre "ENTRER VOTRE KEY" (en noir)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.8, 0, 0, 30)
 title.Position = UDim2.new(0.5, 0, 0.22, 0)
@@ -116,7 +116,7 @@ box.Text = ""
 box.ClearTextOnFocus = false
 box.Parent = card
 local boxCorner = Instance.new("UICorner")
-boxCorner.CornerRadius = UDim.new(0, 10)
+boxCorner.CornerRadius = UDim.new(0, 8)
 boxCorner.Parent = box
 
 -- Bouton "VALIDER" (noir)
@@ -124,7 +124,7 @@ local btn = Instance.new("TextButton")
 btn.Size = UDim2.new(0.4, 0, 0, 44)
 btn.Position = UDim2.new(0.5, 0, 0.76, 0)
 btn.AnchorPoint = Vector2.new(0.5, 0.5)
-btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 btn.BorderSizePixel = 0
 btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Font = Enum.Font.GothamBold
@@ -132,7 +132,7 @@ btn.TextSize = 18
 btn.Text = "VALIDER"
 btn.Parent = card
 local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.CornerRadius = UDim.new(0, 8)
 btnCorner.Parent = btn
 
 -- Label d'erreur (caché)
@@ -148,28 +148,28 @@ err.TextSize = 14
 err.Visible = false
 err.Parent = card
 
--- === ANIMATION D'APPARITION ===
+-- === ANIMATION D'APPARITION (simple) ===
 local scale = Instance.new("UIScale")
-scale.Scale = 0.85
+scale.Scale = 0.9
 scale.Parent = card
 
-TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+TweenService:Create(card, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
     BackgroundTransparency = 0
 }):Play()
-TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
     Scale = 1
 }):Play()
 
 -- === EFFETS DE SURVOL ===
 btn.MouseEnter:Connect(function()
-    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(50, 50, 60) }):Play()
+    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(50, 50, 50) }):Play()
 end)
 btn.MouseLeave:Connect(function()
-    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(25, 25, 35) }):Play()
+    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(20, 20, 20) }):Play()
 end)
 
 box.Focused:Connect(function()
-    TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(30, 30, 40) }):Play()
+    TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(30, 30, 30) }):Play()
 end)
 box.FocusLost:Connect(function()
     TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(200, 200, 200) }):Play()
@@ -184,7 +184,7 @@ local function validateKey()
         -- Animation de sortie
         local fadeOut = TweenService:Create(card, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
         fadeOut:Play()
-        local scaleOut = TweenService:Create(scale, TweenInfo.new(0.2), { Scale = 0.85 })
+        local scaleOut = TweenService:Create(scale, TweenInfo.new(0.2), { Scale = 0.9 })
         scaleOut:Play()
         fadeOut.Completed:Connect(function()
             screenGui:Destroy()
@@ -216,7 +216,7 @@ repeat task.wait() until correct == true
 print("✅ Clé correcte !")
 
 -- ============================================
--- CHARGEMENT RAYFIELD (avec sécurité)
+-- CHARGEMENT RAYFIELD
 -- ============================================
 local Rayfield
 local success, errMsg = pcall(function()
@@ -570,7 +570,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé draggable\n✅ ESP joueurs + armes au sol (cyan)\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé propre\n✅ ESP joueurs + armes au sol (cyan)\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -745,5 +745,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface draggable – ESP armes au sol – Touche de tir : R", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface propre – ESP armes au sol – Touche de tir : R", Duration = 4 })
 print("✅ Script complet chargé !")
