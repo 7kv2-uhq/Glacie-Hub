@@ -1,15 +1,16 @@
 --[[
-    MM2 HUB - Interface clé moderne (blanc/noir) avec texte visible
+    MM2 HUB - Interface clé moderne (blanc/noir) SANS UIShadow
     Clé : mm2
 ]]
 
 local Key = "mm2"
 local TweenService = game:GetService("TweenService")
+local playerGui = game.Players.LocalPlayer.PlayerGui
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KeySystem"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+screenGui.Parent = playerGui
 
 -- Overlay sombre derrière la carte
 local overlay = Instance.new("Frame")
@@ -19,35 +20,39 @@ overlay.BackgroundTransparency = 0.6
 overlay.Parent = screenGui
 
 -- Carte principale (blanche)
-local f = Instance.new("Frame")
-f.Size = UDim2.new(0, 340, 0, 220)  -- plus petit pour mieux voir
-f.Position = UDim2.new(0.5, -170, 0.5, -110)
-f.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-f.Parent = screenGui
+local card = Instance.new("Frame")
+card.Size = UDim2.new(0, 340, 0, 230)
+card.Position = UDim2.new(0.5, -170, 0.5, -115)
+card.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+card.Parent = screenGui
 
--- Ombre
-local shadow = Instance.new("UIShadow")
-shadow.Color = Color3.fromRGB(0, 0, 0)
-shadow.Offset = Vector2.new(0, 6)
-shadow.BlurRadius = 0.8
-shadow.Parent = f
+-- Ombre (un cadre noir derrière, légèrement décalé)
+local shadow = Instance.new("Frame")
+shadow.Size = UDim2.new(0, 350, 0, 240)
+shadow.Position = UDim2.new(0.5, -175 + 4, 0.5, -120 + 4)  -- décalé de 4px
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.15
+shadow.Parent = screenGui
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 16)
+shadowCorner.Parent = shadow
 
--- Coins arrondis
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 16)
-corner.Parent = f
+-- Coins arrondis pour la carte
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 16)
+cardCorner.Parent = card
 
--- Titre (en noir, police standard)
+-- Titre (noir, police standard)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.8, 0, 0, 30)
 title.Position = UDim2.new(0.5, 0, 0.2, 0)
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.BackgroundTransparency = 1
 title.Text = "🔑 Accès sécurisé"
-title.TextColor3 = Color3.fromRGB(20, 20, 20)  -- noir
+title.TextColor3 = Color3.fromRGB(20, 20, 20)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 22
-title.Parent = f
+title.Parent = card
 
 -- Sous-titre
 local subtitle = Instance.new("TextLabel")
@@ -56,12 +61,12 @@ subtitle.Position = UDim2.new(0.5, 0, 0.35, 0)
 subtitle.AnchorPoint = Vector2.new(0.5, 0.5)
 subtitle.BackgroundTransparency = 1
 subtitle.Text = "Entrez votre clé d'accès"
-subtitle.TextColor3 = Color3.fromRGB(120, 120, 120)  -- gris
+subtitle.TextColor3 = Color3.fromRGB(120, 120, 120)
 subtitle.Font = Enum.Font.SourceSans
 subtitle.TextSize = 14
-subtitle.Parent = f
+subtitle.Parent = card
 
--- Champ de saisie (blanc/gris)
+-- Champ de saisie
 local box = Instance.new("TextBox")
 box.Size = UDim2.new(0.8, 0, 0, 44)
 box.Position = UDim2.new(0.5, 0, 0.52, 0)
@@ -75,12 +80,12 @@ box.TextSize = 18
 box.PlaceholderText = "Clé d'accès..."
 box.PlaceholderColor3 = Color3.fromRGB(160, 160, 160)
 box.Text = ""
-box.Parent = f
+box.Parent = card
 local boxCorner = Instance.new("UICorner")
 boxCorner.CornerRadius = UDim.new(0, 10)
 boxCorner.Parent = box
 
--- Bouton (noir)
+-- Bouton Valider (noir)
 local btn = Instance.new("TextButton")
 btn.Size = UDim2.new(0.45, 0, 0, 44)
 btn.Position = UDim2.new(0.5, 0, 0.75, 0)
@@ -91,7 +96,7 @@ btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Font = Enum.Font.SourceSansBold
 btn.TextSize = 18
 btn.Text = "Valider"
-btn.Parent = f
+btn.Parent = card
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 10)
 btnCorner.Parent = btn
@@ -99,7 +104,7 @@ btnCorner.Parent = btn
 -- Label d'erreur
 local err = Instance.new("TextLabel")
 err.Size = UDim2.new(0.8, 0, 0, 22)
-err.Position = UDim2.new(0.5, 0, 0.92, 0)
+err.Position = UDim2.new(0.5, 0, 0.93, 0)
 err.AnchorPoint = Vector2.new(0.5, 0.5)
 err.BackgroundTransparency = 1
 err.Text = ""
@@ -107,15 +112,16 @@ err.TextColor3 = Color3.fromRGB(200, 50, 50)
 err.Font = Enum.Font.SourceSans
 err.TextSize = 15
 err.Visible = false
-err.Parent = f
+err.Parent = card
 
 -- === ANIMATION D'APPARITION ===
 local scale = Instance.new("UIScale")
 scale.Scale = 0.85
-scale.Parent = f
+scale.Parent = card
 
-TweenService:Create(f, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
+TweenService:Create(card, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
 TweenService:Create(scale, TweenInfo.new(0.3), { Scale = 1 }):Play()
+-- L'overlay est déjà opaque, on le laisse
 
 -- === EFFETS DE SURVOL ===
 btn.MouseEnter:Connect(function()
@@ -138,7 +144,8 @@ local correct = false
 local function validateKey()
     if box.Text == Key then
         correct = true
-        local fadeOut = TweenService:Create(f, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
+        -- Animation de sortie
+        local fadeOut = TweenService:Create(card, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
         fadeOut:Play()
         fadeOut.Completed:Connect(function()
             screenGui:Destroy()
@@ -166,12 +173,8 @@ box.FocusLost:Connect(function(enter)
 end)
 
 repeat task.wait() until correct == true
-print("✅ Clé OK")
+print("✅ Clé correcte !")
 
 -- ============================================
--- LE RESTE DE TON SCRIPT (ESP, FLY, TIR, ETC.)
+-- ICI, TU METS LA SUITE DE TON SCRIPT (ESP, FLY, TIR, ETC.)
 -- ============================================
--- (ici tu mets tout le code que tu avais après le système de clé)
--- Je te le rappelle brièvement pour que tu puisses le copier-coller à la suite.
--- Mais pour gagner de la place, je te renvoie à la version précédente que je t'ai donnée.
--- Tu peux simplement remplacer la partie "système de clé" par celle-ci et garder tout le reste.
