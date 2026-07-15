@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (version finale)
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (fiable)
     Clé : mm2
 ]]
 
@@ -446,7 +446,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (VERSION ULTIME)
+-- SHOOT SHERIFF (MÉTHODE FIABLE - ORIENTATION INVISIBLE)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -467,82 +467,29 @@ local function shootSheriff()
         return
     end
 
+    local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
+    if not playerHRP then
+        Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
+        return
+    end
+
     -- Équiper le pistolet
     if gun.Parent ~= player.Character then
         gun.Parent = player.Character
         task.wait(0.1)
     end
 
-    -- === MÉTHODE 1 : ReplicatedStorage.Remotes.Gun ===
-    local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-    if remote then
-        local gunRemote = remote:FindFirstChild("Gun")
-        if gunRemote and gunRemote:IsA("RemoteEvent") then
-            pcall(function()
-                gunRemote:FireServer(target.Position)
-            end)
-            Rayfield:Notify({
-                Title = "🔫 Tir !",
-                Content = "Tu as tiré sur " .. murderer.Name,
-                Duration = 1
-            })
-            return
-        end
-    end
+    -- === ORIENTER LE PERSONNAGE VERS LE MURDERER (INSTANTANÉ) ===
+    local targetPos = target.Position + Vector3.new(0, 1.5, 0) -- vise le buste
+    playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
 
-    -- === MÉTHODE 2 : ReplicatedStorage.Shoot ===
-    local remote2 = game:GetService("ReplicatedStorage"):FindFirstChild("Shoot")
-    if remote2 and remote2:IsA("RemoteEvent") then
-        pcall(function()
-            remote2:FireServer(target.Position)
-        end)
-        Rayfield:Notify({
-            Title = "🔫 Tir !",
-            Content = "Tu as tiré sur " .. murderer.Name,
-            Duration = 1
-        })
-        return
-    end
-
-    -- === MÉTHODE 3 : ReplicatedStorage.Gun ===
-    local remote3 = game:GetService("ReplicatedStorage"):FindFirstChild("Gun")
-    if remote3 and remote3:IsA("RemoteEvent") then
-        pcall(function()
-            remote3:FireServer(target.Position)
-        end)
-        Rayfield:Notify({
-            Title = "🔫 Tir !",
-            Content = "Tu as tiré sur " .. murderer.Name,
-            Duration = 1
-        })
-        return
-    end
-
-    -- === MÉTHODE 4 : n'importe quel RemoteEvent contenant "shoot" ===
-    local found = false
-    for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-        if obj:IsA("RemoteEvent") and string.find(string.lower(obj.Name), "shoot") then
-            pcall(function()
-                obj:FireServer(target.Position)
-                found = true
-            end)
-        end
-    end
-    if found then
-        Rayfield:Notify({
-            Title = "🔫 Tir !",
-            Content = "Tu as tiré sur " .. murderer.Name,
-            Duration = 1
-        })
-        return
-    end
-
-    -- === FALLBACK FINAL ===
+    -- Tirer (la balle va bien vers le murderer)
     gun:Activate()
-    task.wait(0.1)
+    task.wait(0.05)
     gun:Deactivate()
+
     Rayfield:Notify({
-        Title = "🔫 Tir (fallback)",
+        Title = "🔫 Tir !",
         Content = "Tu as tiré sur " .. murderer.Name,
         Duration = 1
     })
@@ -602,7 +549,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (version ultime)" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (orientation invisible)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -773,5 +720,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (ultime)", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (orientation invisible)", Duration = 4 })
 print("✅ Script complet chargé !")
