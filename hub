@@ -1,10 +1,11 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (fiable)
-    Clé : mm2
+    GLACIE HUB - Murder Mystery 2
+    Key: mm2
+    by: 7kv2
 ]]
 
 -- ============================================
--- KEY SYSTEM (ton design)
+-- KEY SYSTEM (Custom UI)
 -- ============================================
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -33,7 +34,7 @@ local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 16)
 frameCorner.Parent = frame
 
--- Animation d'entrée
+-- Entrance animation
 frame.Size = UDim2.new(0, 380, 0, 360)
 frame.Position = UDim2.new(0.5, 0, 0.5, 30)
 frame.BackgroundTransparency = 1
@@ -48,7 +49,7 @@ local enterTween = tweenService:Create(frame, tweenInfo, {
 })
 enterTween:Play()
 
--- Cercle Avatar
+-- Avatar Circle
 local avatarFrame = Instance.new("Frame")
 avatarFrame.Size = UDim2.new(0, 120, 0, 120)
 avatarFrame.Position = UDim2.new(0.5, 0, 0, 85)
@@ -80,7 +81,7 @@ title.Size = UDim2.new(0.9, 0, 0, 40)
 title.Position = UDim2.new(0.5, 0, 0, 175)
 title.AnchorPoint = Vector2.new(0.5, 0)
 title.BackgroundTransparency = 1
-title.Text = "ENTREZ VOTRE KEY"
+title.Text = "ENTER YOUR KEY"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 27
 title.Font = Enum.Font.GothamBold
@@ -91,7 +92,7 @@ subtitle.Size = UDim2.new(0.9, 0, 0, 25)
 subtitle.Position = UDim2.new(0.5, 0, 0, 210)
 subtitle.AnchorPoint = Vector2.new(0.5, 0)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "Veuillez saisir votre key pour continuer."
+subtitle.Text = "Please enter your key to continue."
 subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
 subtitle.TextSize = 15
 subtitle.Font = Enum.Font.Gotham
@@ -101,7 +102,7 @@ local inputBox = Instance.new("TextBox")
 inputBox.Size = UDim2.new(0.75, 0, 0, 50)
 inputBox.Position = UDim2.new(0.5, 0, 0, 260)
 inputBox.AnchorPoint = Vector2.new(0.5, 0)
-inputBox.PlaceholderText = "Votre key"
+inputBox.PlaceholderText = "Your key"
 inputBox.Text = ""
 inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -119,7 +120,7 @@ validateBtn.Size = UDim2.new(0.75, 0, 0, 55)
 validateBtn.Position = UDim2.new(0.5, 0, 0, 325)
 validateBtn.AnchorPoint = Vector2.new(0.5, 0)
 validateBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-validateBtn.Text = "VALIDER"
+validateBtn.Text = "VALIDATE"
 validateBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 validateBtn.TextSize = 20
 validateBtn.Font = Enum.Font.GothamBold
@@ -135,7 +136,7 @@ local keyValidated = false
 validateBtn.MouseButton1Click:Connect(function()
     local entered = inputBox.Text:lower():gsub("%s+", "")
     if entered == correctKey then
-        validateBtn.Text = "ACCÈS ACCORDÉ ✓"
+        validateBtn.Text = "ACCESS GRANTED ✓"
         validateBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
 
         local exitTween = tweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
@@ -148,23 +149,23 @@ validateBtn.MouseButton1Click:Connect(function()
         task.wait(0.6)
         screenGui:Destroy()
         keyValidated = true
-        print("✅ Key MM2 validée avec animation !")
+        print("✅ Key validated!")
     else
-        validateBtn.Text = "KEY INCORRECTE"
+        validateBtn.Text = "INCORRECT KEY"
         validateBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         task.wait(2)
-        validateBtn.Text = "VALIDER"
+        validateBtn.Text = "VALIDATE"
         validateBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     end
 end)
 
-print("Key System avec animations chargé")
+print("Key system loaded")
 
 repeat task.wait() until keyValidated == true
-print("✅ Suite du script après validation de la clé")
+print("✅ Continuing after key validation")
 
 -- ============================================
--- CHARGEMENT RAYFIELD
+-- LOAD RAYFIELD
 -- ============================================
 local Rayfield
 local success, errMsg = pcall(function()
@@ -172,7 +173,7 @@ local success, errMsg = pcall(function()
 end)
 
 if not success or not Rayfield then
-    warn("❌ Échec du chargement de Rayfield :", errMsg)
+    warn("❌ Failed to load Rayfield:", errMsg)
     return
 end
 
@@ -201,7 +202,7 @@ local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
 -- ============================================
--- FONCTIONS UTILITAIRES
+-- UTILITY FUNCTIONS
 -- ============================================
 local function getMurderer()
     for _, v in pairs(Players:GetPlayers()) do
@@ -349,7 +350,7 @@ local function scanGuns()
     end
 end
 
--- Événements joueurs
+-- Player events
 local function onCharacterAdded(plr, char)
     task.wait(0.3)
     createPlayerHighlight(plr)
@@ -380,6 +381,7 @@ player.CharacterAdded:Connect(function()
     updatePlayerColors()
 end)
 
+-- Update loops
 spawn(function()
     while task.wait(2) do
         if state.MurdererESP or state.SheriffESP or state.InnocentESP then
@@ -446,51 +448,51 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (MÉTHODE FIABLE - ORIENTATION INVISIBLE)
+-- SHOOT SHERIFF (Invisible orientation + fire)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
     if not gun then
-        Rayfield:Notify({ Title = "❌ Pas Sheriff", Content = "Tu n'as pas de pistolet !", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Not Sheriff", Content = "You don't have a gun!", Duration = 2 })
         return
     end
 
     local murderer = getMurderer()
     if not murderer or not murderer.Character then
-        Rayfield:Notify({ Title = "❌ Murderer", Content = "Introuvable", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Murderer", Content = "Not found", Duration = 2 })
         return
     end
 
     local target = murderer.Character:FindFirstChild("HumanoidRootPart") or murderer.Character:FindFirstChild("Head")
     if not target then
-        Rayfield:Notify({ Title = "❌ Cible", Content = "Impossible de viser", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Target", Content = "Cannot aim", Duration = 2 })
         return
     end
 
     local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
     if not playerHRP then
-        Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Error", Content = "Character not found", Duration = 2 })
         return
     end
 
-    -- Équiper le pistolet
+    -- Equip gun
     if gun.Parent ~= player.Character then
         gun.Parent = player.Character
         task.wait(0.1)
     end
 
-    -- === ORIENTER LE PERSONNAGE VERS LE MURDERER (INSTANTANÉ) ===
-    local targetPos = target.Position + Vector3.new(0, 1.5, 0) -- vise le buste
+    -- Instant orientation (invisible) toward the murderer's chest
+    local targetPos = target.Position + Vector3.new(0, 1.5, 0)
     playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
 
-    -- Tirer (la balle va bien vers le murderer)
+    -- Shoot
     gun:Activate()
     task.wait(0.05)
     gun:Deactivate()
 
     Rayfield:Notify({
-        Title = "🔫 Tir !",
-        Content = "Tu as tiré sur " .. murderer.Name,
+        Title = "🔫 Shot!",
+        Content = "You shot " .. murderer.Name,
         Duration = 1
     })
 end
@@ -507,13 +509,13 @@ end)
 -- ============================================
 local function flingPlayer(targetPlayer)
     if not targetPlayer or not targetPlayer.Character then
-        Rayfield:Notify({ Title = "❌ Erreur", Content = "Joueur invalide", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Error", Content = "Invalid player", Duration = 2 })
         return false
     end
     local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
     if not targetHRP or not playerHRP then
-        Rayfield:Notify({ Title = "❌ Erreur", Content = "Cible introuvable", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Error", Content = "Target not found", Duration = 2 })
         return false
     end
 
@@ -526,43 +528,43 @@ local function flingPlayer(targetPlayer)
     playerHRP.Position = originalPos
 
     if humanoid then humanoid.PlatformStand = false end
-    Rayfield:Notify({ Title = "💥 Fling !", Content = "Flingué " .. targetPlayer.Name, Duration = 1 })
+    Rayfield:Notify({ Title = "💥 Fling!", Content = "Flinged " .. targetPlayer.Name, Duration = 1 })
     return true
 end
 
 -- ============================================
--- INTERFACE RAYFIELD (version courte)
+-- RAYFIELD INTERFACE
 -- ============================================
 local Window = Rayfield:CreateWindow({
-    Name = "🔪 MM2 HUB",
-    LoadingTitle = "Chargement...",
-    LoadingSubtitle = "Clé : mm2",
-    ConfigurationSaving = { Enabled = true, FolderName = "MM2Config", FileName = "MM2Hub" },
+    Name = "Glacie Hub",
+    LoadingTitle = "Glacie Hub",
+    LoadingSubtitle = "by: 7kv2",
+    ConfigurationSaving = { Enabled = true, FolderName = "GlacieHub", FileName = "GlacieHub" },
     KeySystem = false
 })
 
-local MainTab = Window:CreateTab("🏠 Accueil")
-local PlayerTab = Window:CreateTab("👤 Joueur")
+local MainTab = Window:CreateTab("🏠 Home")
+local PlayerTab = Window:CreateTab("👤 Player")
 local ESPTab = Window:CreateTab("👁️ ESP")
 local CombatTab = Window:CreateTab("⚔️ Combat")
-local WorldTab = Window:CreateTab("🌍 Monde")
-local MiscTab = Window:CreateTab("🔧 Divers")
-local SettingsTab = Window:CreateTab("⚙️ Paramètres")
+local WorldTab = Window:CreateTab("🌍 World")
+local MiscTab = Window:CreateTab("🔧 Misc")
+local SettingsTab = Window:CreateTab("⚙️ Settings")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (orientation invisible)" })
+MainTab:CreateParagraph({ Title = "Glacie Hub", Content = "✅ Custom key system\n✅ ESP (Players + Guns)\n✅ Shoot Sheriff (auto-aim)\n🔫 Customizable shoot key" })
 
--- Joueur
-PlayerTab:CreateSection("🏃 Mouvement")
+-- Player
+PlayerTab:CreateSection("🏃 Movement")
 PlayerTab:CreateSlider({
-    Name = "Vitesse", Range = {16, 200}, Increment = 1, CurrentValue = 16, Flag = "WalkSpeed",
+    Name = "Walk Speed", Range = {16, 200}, Increment = 1, CurrentValue = 16, Flag = "WalkSpeed",
     Callback = function(v) state.WalkSpeed = v; pcall(function() player.Character.Humanoid.WalkSpeed = v end) end
 })
 PlayerTab:CreateSlider({
-    Name = "Saut", Range = {50, 300}, Increment = 1, CurrentValue = 50, Flag = "JumpPower",
+    Name = "Jump Power", Range = {50, 300}, Increment = 1, CurrentValue = 50, Flag = "JumpPower",
     Callback = function(v) state.JumpPower = v; pcall(function() player.Character.Humanoid.JumpPower = v end) end
 })
 PlayerTab:CreateToggle({
-    Name = "✈️ Fly (WASD + Espace/Maj)", CurrentValue = false, Flag = "FlyToggle",
+    Name = "✈️ Fly (WASD + Space/Shift)", CurrentValue = false, Flag = "FlyToggle",
     Callback = function(v)
         state.Fly = v
         if not v and bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
@@ -570,7 +572,7 @@ PlayerTab:CreateToggle({
             local hum = player.Character:FindFirstChild("Humanoid")
             if hum then hum.PlatformStand = v end
         end
-        Rayfield:Notify({ Title = "Fly", Content = v and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+        Rayfield:Notify({ Title = "Fly", Content = v and "✅ Enabled" or "❌ Disabled", Duration = 1 })
     end
 })
 PlayerTab:CreateToggle({
@@ -582,7 +584,7 @@ PlayerTab:CreateToggle({
                 if part:IsA("BasePart") then part.CanCollide = not v end
             end
         end
-        Rayfield:Notify({ Title = "Noclip", Content = v and "✅ Activé" or "❌ Désactivé", Duration = 1 })
+        Rayfield:Notify({ Title = "Noclip", Content = v and "✅ Enabled" or "❌ Disabled", Duration = 1 })
     end
 })
 
@@ -601,7 +603,7 @@ ESPTab:CreateToggle({
     Callback = function(v) state.InnocentESP = v; updatePlayerColors() end
 })
 ESPTab:CreateToggle({
-    Name = "🔫 ESP Armes (cyan)", CurrentValue = false, Flag = "GunESP",
+    Name = "🔫 ESP Guns (cyan)", CurrentValue = false, Flag = "GunESP",
     Callback = function(v)
         state.GunESP = v
         if v then scanGuns()
@@ -612,7 +614,7 @@ ESPTab:CreateToggle({
     end
 })
 
--- === COMBAT - SHOOT SHERIFF ===
+-- Combat
 CombatTab:CreateSection("🎯 Shoot Sheriff")
 
 CombatTab:CreateToggle({
@@ -623,34 +625,34 @@ CombatTab:CreateToggle({
         state.ShootSheriff = v
         Rayfield:Notify({
             Title = "Shoot Sheriff",
-            Content = v and "✅ Activé (touche " .. state.ShootKey .. ")" or "❌ Désactivé",
+            Content = v and "✅ Enabled (key: " .. state.ShootKey .. ")" or "❌ Disabled",
             Duration = 1
         })
     end
 })
 
 CombatTab:CreateInput({
-    Name = "⌨️ Touche de tir",
+    Name = "⌨️ Shoot key",
     PlaceholderText = "R",
     RemoveTextAfterFocusLost = false,
     Callback = function(t)
         local key = string.upper(string.sub(t, 1, 1))
         if key:match("%a") then
             state.ShootKey = key
-            Rayfield:Notify({ Title = "Touche", Content = "Touche : " .. key, Duration = 2 })
+            Rayfield:Notify({ Title = "Key", Content = "Key set to: " .. key, Duration = 2 })
         end
     end
 })
 
--- Monde
-WorldTab:CreateSection("📍 Téléportation")
-WorldTab:CreateButton({ Name = "🎯 Au Murderer", Callback = function()
+-- World
+WorldTab:CreateSection("📍 Teleport")
+WorldTab:CreateButton({ Name = "🎯 To Murderer", Callback = function()
     local m = getMurderer()
     if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
         player.Character.HumanoidRootPart.Position = m.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
     end
 end })
-WorldTab:CreateButton({ Name = "🎯 Au Sheriff", Callback = function()
+WorldTab:CreateButton({ Name = "🎯 To Sheriff", Callback = function()
     local s = getSheriff()
     if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
         player.Character.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
@@ -667,31 +669,31 @@ WorldTab:CreateButton({ Name = "🗺️ Map", Callback = function()
     if player.Character then player.Character.HumanoidRootPart.Position = pos end
 end })
 
--- Divers
+-- Misc
 MiscTab:CreateSection("💥 Fling")
 MiscTab:CreateButton({ Name = "🔪 Fling Murderer", Callback = function() flingPlayer(getMurderer()) end })
 MiscTab:CreateButton({ Name = "🔫 Fling Sheriff", Callback = function()
     local s = getSheriff()
     flingPlayer(s)
 end })
-MiscTab:CreateInput({ Name = "👤 Nom du joueur", PlaceholderText = "Pseudo...", Flag = "FlingTargetInput",
+MiscTab:CreateInput({ Name = "👤 Player name", PlaceholderText = "Username...", Flag = "FlingTargetInput",
     Callback = function(t) state.flingTargetName = t end
 })
-MiscTab:CreateButton({ Name = "💥 Fling ce joueur", Callback = function()
+MiscTab:CreateButton({ Name = "💥 Fling this player", Callback = function()
     local target = Players:FindFirstChild(state.flingTargetName)
-    if target then flingPlayer(target) else Rayfield:Notify({ Title = "❌", Content = "Introuvable", Duration = 2 }) end
+    if target then flingPlayer(target) else Rayfield:Notify({ Title = "❌", Content = "Player not found", Duration = 2 }) end
 end })
 
-MiscTab:CreateSection("🔄 Utilitaires")
+MiscTab:CreateSection("🔄 Utilities")
 MiscTab:CreateButton({ Name = "🔄 Reset", Callback = function() if player.Character then player.Character:BreakJoints() end end })
-MiscTab:CreateButton({ Name = "❤️ Soin", Callback = function() if player.Character and player.Character.Humanoid then player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth end end })
+MiscTab:CreateButton({ Name = "❤️ Heal", Callback = function() if player.Character and player.Character.Humanoid then player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth end end })
 MiscTab:CreateButton({ Name = "🔄 Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, player) end })
 
--- Paramètres
-SettingsTab:CreateSection("⚙️")
-SettingsTab:CreateButton({ Name = "❌ Fermer", Callback = function() Window:Destroy() end })
+-- Settings
+SettingsTab:CreateSection("⚙️ Interface")
+SettingsTab:CreateButton({ Name = "❌ Close", Callback = function() Window:Destroy() end })
 SettingsTab:CreateButton({
-    Name = "🔄 Réinitialiser tout",
+    Name = "🔄 Reset everything",
     Callback = function()
         for k, v in pairs(state) do
             if type(v) == "boolean" then
@@ -710,15 +712,16 @@ SettingsTab:CreateButton({
         for _, h in pairs(gunHighlights) do pcall(function() h:Destroy() end) end
         gunHighlights = {}
         if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
-        Rayfield:Notify({ Title = "✅", Content = "Réinitialisé", Duration = 2 })
+        Rayfield:Notify({ Title = "✅", Content = "Reset successful", Duration = 2 })
     end
 })
 
 -- ============================================
--- DÉMARRAGE
+-- STARTUP
 -- ============================================
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (orientation invisible)", Duration = 4 })
-print("✅ Script complet chargé !")
+
+Rayfield:Notify({ Title = "✅ Glacie Hub", Content = "Key: mm2 | by: 7kv2", Duration = 4 })
+print("✅ Glacie Hub loaded successfully!")
