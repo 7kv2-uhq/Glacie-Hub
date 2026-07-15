@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff fiable
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (sans orientation)
     Clé : mm2
 ]]
 
@@ -446,7 +446,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (fiable - orientation du personnage)
+-- SHOOT SHERIFF (sans orientation)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -461,29 +461,13 @@ local function shootSheriff()
         return
     end
 
-    local target = murderer.Character:FindFirstChild("HumanoidRootPart")
-    if not target then
-        Rayfield:Notify({ Title = "❌ Cible", Content = "Impossible de viser", Duration = 2 })
-        return
-    end
-
-    local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
-    if not playerHRP then
-        Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
-        return
-    end
-
     -- Équiper le pistolet
     if gun.Parent ~= player.Character then
         gun.Parent = player.Character
         task.wait(0.1)
     end
 
-    -- Orienter le personnage vers le murderer (buste)
-    local targetPos = target.Position + Vector3.new(0, 1.5, 0)
-    playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
-
-    -- Tirer
+    -- Tirer (dans la direction actuelle du personnage)
     gun:Activate()
     task.wait(0.05)
     gun:Deactivate()
@@ -549,7 +533,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff fiable (orientation personnage)" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (sans orientation)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -720,5 +704,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff fiable", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (sans orientation)", Duration = 4 })
 print("✅ Script complet chargé !")
