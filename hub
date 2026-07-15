@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Tir par clic simulé (sans caméra ni orientation)
+    MM2 HUB - ESP intelligent + Tir par clic simulé
     Clé : mm2
 ]]
 
@@ -100,13 +100,27 @@ local espObjects = { Murderer = {}, Sheriff = {}, Innocents = {}, Guns = {} }
 local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
+-- Variables pour le suivi intelligent des rôles
+local foundMurderer = nil      -- joueur actuel murderer
+local foundSheriff = nil      -- joueur actuel sheriff
+
 -- ============================================
--- FONCTIONS
+-- FONCTIONS DE RECHERCHE DES RÔLES
 -- ============================================
 local function getMurderer()
+    -- Si on a déjà un murderer et qu'il est toujours valide, on le retourne
+    if foundMurderer and foundMurderer.Character and foundMurderer.Character.Parent then
+        local hasKnife = foundMurderer.Backpack:FindFirstChild("Knife") or foundMurderer.Character:FindFirstChild("Knife")
+        if hasKnife then
+            return foundMurderer
+        end
+    end
+    -- Sinon, on recherche
+    foundMurderer = nil
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character then
+        if v ~= player and v.Character and v.Character.Parent then
             if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                foundMurderer = v
                 return v
             end
         end
@@ -115,9 +129,17 @@ local function getMurderer()
 end
 
 local function getSheriff()
+    if foundSheriff and foundSheriff.Character and foundSheriff.Character.Parent then
+        local hasGun = foundSheriff.Backpack:FindFirstChild("Gun") or foundSheriff.Character:FindFirstChild("Gun")
+        if hasGun then
+            return foundSheriff
+        end
+    end
+    foundSheriff = nil
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character then
+        if v ~= player and v.Character and v.Character.Parent then
             if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+                foundSheriff = v
                 return v
             end
         end
@@ -137,6 +159,9 @@ local function getGuns()
     return guns
 end
 
+-- ============================================
+-- ESP
+-- ============================================
 local function createESP(instance, color)
     if not instance then return nil end
     local h = Instance.new("Highlight")
@@ -158,6 +183,7 @@ local function clearESP(tableName)
 end
 
 local function refreshESP()
+    -- MURDERER
     if state.MurdererESP then
         clearESP("Murderer")
         local m = getMurderer()
@@ -166,6 +192,8 @@ local function refreshESP()
             if h then table.insert(espObjects.Murderer, h) end
         end
     end
+
+    -- SHERIFF
     if state.SheriffESP then
         clearESP("Sheriff")
         local s = getSheriff()
@@ -174,6 +202,8 @@ local function refreshESP()
             if h then table.insert(espObjects.Sheriff, h) end
         end
     end
+
+    -- INNOCENTS (recherche complète à chaque fois, car ils peuvent changer)
     if state.InnocentESP then
         clearESP("Innocents")
         local murderer = getMurderer()
@@ -185,6 +215,8 @@ local function refreshESP()
             end
         end
     end
+
+    -- GUNS (rafraîchi à chaque fois)
     if state.GunESP then
         clearESP("Guns")
         for _, gun in pairs(getGuns()) do
@@ -196,22 +228,39 @@ local function refreshESP()
     end
 end
 
-local function onCharacterAdded(char)
-    char:WaitForChild("Humanoid")
+-- Boucle de rafraîchissement intelligente
+spawn(function()
+    while task.wait(1) do
+        -- On rafraîchit seulement si au moins un ESP est actif
+        if state.MurdererESP or state.SheriffESP or state.InnocentESP or state.GunESP then
+            refreshESP()
+        end
+    end
+end)
+
+-- Événements pour forcer un rafraîchissement quand un joueur meurt ou change
+local function onPlayerRemoved(p)
+    -- Si c'était le murderer ou sheriff, on les réinitialise pour qu'ils soient recherchés
+    if p == foundMurderer then foundMurderer = nil end
+    if p == foundSheriff then foundSheriff = nil end
     task.wait(0.2)
     refreshESP()
 end
+Players.PlayerRemoving:Connect(onPlayerRemoved)
 
-local function onPlayerAdded(p)
-    p.CharacterAdded:Connect(onCharacterAdded)
+local function onCharacterAdded(char)
+    task.wait(0.2)
+    refreshESP()
 end
-
 for _, p in pairs(Players:GetPlayers()) do
-    if p ~= player then p.CharacterAdded:Connect(onCharacterAdded) end
+    if p ~= player then
+        p.CharacterAdded:Connect(onCharacterAdded)
+    end
 end
-Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(onCharacterAdded) end)
 player.CharacterAdded:Connect(onCharacterAdded)
 
+-- Application des stats
 local function applyStats(char)
     if not char then return end
     local hum = char:FindFirstChild("Humanoid")
@@ -272,7 +321,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- TIR PAR CLIC SIMULÉ (sans caméra ni orientation)
+-- TIR PAR CLIC SIMULÉ
 -- ============================================
 local function shootAtMurderer()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -293,23 +342,23 @@ local function shootAtMurderer()
         return
     end
 
-    -- Position du buste du murderer à l'écran
+    -- Position du buste à l'écran
     local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(targetHRP.Position + Vector3.new(0, 1.5, 0))
     if not onScreen then
         Rayfield:Notify({Title="❌ Hors écran", Content="Le murderer n'est pas visible", Duration=2})
         return
     end
 
-    -- Simuler un clic à cette position (sans bouger la caméra)
+    -- Déplacer le curseur
     mouse.X = screenPos.X
     mouse.Y = screenPos.Y
-    task.wait(0.02) -- laisser le temps au curseur de se placer
-    mouse1click()
+    task.wait(0.02)
+    -- Simuler un clic gauche
+    mouse.Button1Click:Fire()
 
     Rayfield:Notify({Title="🔫 Tir !", Content="Tir sur "..murderer.Name, Duration=1})
 end
 
--- Détection de la touche de tir
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp or not state.ShootEnabled then return end
     if input.KeyCode.Name == state.ShootKey then
@@ -365,7 +414,7 @@ local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
 -- Accueil
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Tir par clic simulé (sans caméra ni orientation)\n🔴🟡🔵 ESP\n✈️ Fly / Noclip\n🔫 Touche personnalisable" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP intelligent (rafraîchissement optimisé)\n✅ Tir par clic simulé (sans caméra)\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -406,19 +455,23 @@ PlayerTab:CreateToggle({
 ESPTab:CreateSection("👁️ ESP")
 ESPTab:CreateToggle({
     Name = "🔴 ESP Murderer", CurrentValue = false, Flag = "MurdererESP",
-    Callback = function(v) state.MurdererESP = v; refreshESP() end
+    Callback = function(v) state.MurdererESP = v; if v then refreshESP() end
+    end
 })
 ESPTab:CreateToggle({
     Name = "🔵 ESP Sheriff", CurrentValue = false, Flag = "SheriffESP",
-    Callback = function(v) state.SheriffESP = v; refreshESP() end
+    Callback = function(v) state.SheriffESP = v; if v then refreshESP() end
+    end
 })
 ESPTab:CreateToggle({
     Name = "🟡 ESP Innocents", CurrentValue = false, Flag = "InnocentESP",
-    Callback = function(v) state.InnocentESP = v; refreshESP() end
+    Callback = function(v) state.InnocentESP = v; if v then refreshESP() end
+    end
 })
 ESPTab:CreateToggle({
     Name = "🔫 ESP Armes", CurrentValue = false, Flag = "GunESP",
-    Callback = function(v) state.GunESP = v; refreshESP() end
+    Callback = function(v) state.GunESP = v; if v then refreshESP() end
+    end
 })
 
 -- Combat
@@ -523,6 +576,8 @@ SettingsTab:CreateButton({
         end
         for key, _ in pairs(espObjects) do clearESP(key) end
         if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
+        foundMurderer = nil
+        foundSheriff = nil
         Rayfield:Notify({ Title = "✅", Content = "Réinitialisé", Duration = 2 })
     end
 })
@@ -532,5 +587,5 @@ SettingsTab:CreateButton({
 -- ============================================
 task.wait(0.5)
 refreshESP()
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Tir par clic simulé – Touche par défaut: R", Duration = 4 })
-print("✅ Script avec tir par clic chargé !")
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP intelligent – Tir par clic – Touche par défaut: R", Duration = 4 })
+print("✅ Script final chargé !")
