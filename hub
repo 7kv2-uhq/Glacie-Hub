@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé (design de l'utilisateur) + ESP / Fly / Tir
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff fiable
     Clé : mm2
 ]]
 
@@ -24,7 +24,6 @@ frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 1
 frame.Parent = screenGui
 
--- Contour blanc
 local frameStroke = Instance.new("UIStroke")
 frameStroke.Thickness = 2
 frameStroke.Color = Color3.fromRGB(255, 255, 255)
@@ -76,7 +75,6 @@ avatarImage.Parent = avatarFrame
 local thumb, ready = game.Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
 if ready then avatarImage.Image = thumb end
 
--- Titre
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.9, 0, 0, 40)
 title.Position = UDim2.new(0.5, 0, 0, 175)
@@ -131,7 +129,6 @@ local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 10)
 btnCorner.Parent = validateBtn
 
--- === VALIDATION AVEC ATTENTE POUR LA SUITE ===
 local correctKey = "mm2"
 local keyValidated = false
 
@@ -141,7 +138,6 @@ validateBtn.MouseButton1Click:Connect(function()
         validateBtn.Text = "ACCÈS ACCORDÉ ✓"
         validateBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
 
-        -- Animation de sortie
         local exitTween = tweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
             Size = UDim2.new(0, 380, 0, 360),
             Position = UDim2.new(0.5, 0, 0.5, 50),
@@ -164,7 +160,6 @@ end)
 
 print("Key System avec animations chargé")
 
--- === ATTENDRE QUE LA CLÉ SOIT VALIDÉE ===
 repeat task.wait() until keyValidated == true
 print("✅ Suite du script après validation de la clé")
 
@@ -187,7 +182,6 @@ end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local mouse = player:GetMouse()
 
 local state = {
     Fly = false,
@@ -196,7 +190,7 @@ local state = {
     SheriffESP = false,
     InnocentESP = false,
     GunESP = false,
-    ShootEnabled = false,
+    ShootSheriff = false,
     ShootKey = "R",
     WalkSpeed = 16,
     JumpPower = 50,
@@ -207,7 +201,46 @@ local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
 -- ============================================
--- ESP (ultra-léger)
+-- FONCTIONS UTILITAIRES
+-- ============================================
+local function getMurderer()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character.Parent then
+            local hasKnife = v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife")
+            if hasKnife then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+local function getSheriff()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character.Parent then
+            local hasGun = v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun")
+            if hasGun then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+local function getGuns()
+    local guns = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Tool") and v.Name == "Gun" then
+            if v.Parent and not v.Parent:IsA("Backpack") and not v.Parent:IsA("Character") then
+                table.insert(guns, v)
+            end
+        end
+    end
+    return guns
+end
+
+-- ============================================
+-- ESP
 -- ============================================
 local playerHighlights = {}
 local gunHighlights = {}
@@ -245,16 +278,8 @@ local function createGunHighlight(gunObj)
 end
 
 local function updatePlayerColors()
-    local murderer = nil
-    local sheriff = nil
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character.Parent then
-            local hasKnife = plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife")
-            local hasGun = plr.Backpack:FindFirstChild("Gun") or plr.Character:FindFirstChild("Gun")
-            if hasKnife then murderer = plr end
-            if hasGun then sheriff = plr end
-        end
-    end
+    local murderer = getMurderer()
+    local sheriff = getSheriff()
 
     for _, plr in pairs(Players:GetPlayers()) do
         if plr == player then continue end
@@ -421,56 +446,59 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- TIR PAR CLIC SIMULÉ
+-- SHOOT SHERIFF (fiable - orientation du personnage)
 -- ============================================
-local function getMurderer()
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character.Parent then
-            if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                return v
-            end
-        end
-    end
-    return nil
-end
-
-local function shootAtMurderer()
+local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
     if not gun then
-        Rayfield:Notify({Title="❌ Pas de pistolet", Content="Tu n'es pas sheriff", Duration=2})
+        Rayfield:Notify({ Title = "❌ Pas Sheriff", Content = "Tu n'as pas de pistolet !", Duration = 2 })
         return
     end
 
     local murderer = getMurderer()
     if not murderer or not murderer.Character then
-        Rayfield:Notify({Title="❌ Murderer", Content="Introuvable", Duration=2})
+        Rayfield:Notify({ Title = "❌ Murderer", Content = "Introuvable", Duration = 2 })
         return
     end
 
-    local targetHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-    if not targetHRP then
-        Rayfield:Notify({Title="❌ Erreur", Content="Cible introuvable", Duration=2})
+    local target = murderer.Character:FindFirstChild("HumanoidRootPart")
+    if not target then
+        Rayfield:Notify({ Title = "❌ Cible", Content = "Impossible de viser", Duration = 2 })
         return
     end
 
-    local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(targetHRP.Position + Vector3.new(0, 1.5, 0))
-    if not onScreen then
-        Rayfield:Notify({Title="❌ Hors écran", Content="Le murderer n'est pas visible", Duration=2})
+    local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
+    if not playerHRP then
+        Rayfield:Notify({ Title = "❌ Erreur", Content = "Personnage introuvable", Duration = 2 })
         return
     end
 
-    mouse.X = screenPos.X
-    mouse.Y = screenPos.Y
-    task.wait(0.02)
-    mouse.Button1Click:Fire()
+    -- Équiper le pistolet
+    if gun.Parent ~= player.Character then
+        gun.Parent = player.Character
+        task.wait(0.1)
+    end
 
-    Rayfield:Notify({Title="🔫 Tir !", Content="Tir sur "..murderer.Name, Duration=1})
+    -- Orienter le personnage vers le murderer (buste)
+    local targetPos = target.Position + Vector3.new(0, 1.5, 0)
+    playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
+
+    -- Tirer
+    gun:Activate()
+    task.wait(0.05)
+    gun:Deactivate()
+
+    Rayfield:Notify({
+        Title = "🔫 Tir !",
+        Content = "Tu as tiré sur " .. murderer.Name,
+        Duration = 1
+    })
 end
 
 UserInputService.InputBegan:Connect(function(input, gp)
-    if gp or not state.ShootEnabled then return end
+    if gp or not state.ShootSheriff then return end
     if input.KeyCode.Name == state.ShootKey then
-        shootAtMurderer()
+        shootSheriff()
     end
 end)
 
@@ -521,7 +549,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée (avec avatar)\n✅ ESP joueurs + armes au sol\n✅ Tir par clic simulé" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff fiable (orientation personnage)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -584,17 +612,23 @@ ESPTab:CreateToggle({
     end
 })
 
--- Combat
-CombatTab:CreateSection("🔫 Tir automatique")
+-- === COMBAT - SHOOT SHERIFF ===
+CombatTab:CreateSection("🎯 Shoot Sheriff")
+
 CombatTab:CreateToggle({
-    Name = "🎯 Activer le tir",
+    Name = "🎯 Shoot Sheriff",
     CurrentValue = false,
-    Flag = "ShootToggle",
+    Flag = "ShootSheriff",
     Callback = function(v)
-        state.ShootEnabled = v
-        Rayfield:Notify({ Title = "Tir", Content = v and "✅ Activé (touche "..state.ShootKey..")" or "❌ Désactivé", Duration = 2 })
+        state.ShootSheriff = v
+        Rayfield:Notify({
+            Title = "Shoot Sheriff",
+            Content = v and "✅ Activé (touche " .. state.ShootKey .. ")" or "❌ Désactivé",
+            Duration = 1
+        })
     end
 })
+
 CombatTab:CreateInput({
     Name = "⌨️ Touche de tir",
     PlaceholderText = "R",
@@ -617,12 +651,7 @@ WorldTab:CreateButton({ Name = "🎯 Au Murderer", Callback = function()
     end
 end })
 WorldTab:CreateButton({ Name = "🎯 Au Sheriff", Callback = function()
-    local s = nil
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character then
-            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then s = v; break end
-        end
-    end
+    local s = getSheriff()
     if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
         player.Character.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
     end
@@ -642,12 +671,7 @@ end })
 MiscTab:CreateSection("💥 Fling")
 MiscTab:CreateButton({ Name = "🔪 Fling Murderer", Callback = function() flingPlayer(getMurderer()) end })
 MiscTab:CreateButton({ Name = "🔫 Fling Sheriff", Callback = function()
-    local s = nil
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character then
-            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then s = v; break end
-        end
-    end
+    local s = getSheriff()
     flingPlayer(s)
 end })
 MiscTab:CreateInput({ Name = "👤 Nom du joueur", PlaceholderText = "Pseudo...", Flag = "FlingTargetInput",
@@ -696,5 +720,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface clé personnalisée – Touche de tir : R", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff fiable", Duration = 4 })
 print("✅ Script complet chargé !")
