@@ -1,10 +1,10 @@
 --[[
-    MM2 HUB - ESP réactif + Tir par clic
+    MM2 HUB - ESP fiable + Tir par clic
     Clé : mm2
 ]]
 
 -- ============================================
--- SYSTÈME DE CLÉ (raccourci)
+-- SYSTÈME DE CLÉ
 -- ============================================
 local Key = "mm2"
 local sg = Instance.new("ScreenGui")
@@ -100,71 +100,61 @@ local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
 -- ============================================
--- ESP OPTIMISÉ (un Highlight par joueur)
+-- ESP SIMPLE ET FIABLE
 -- ============================================
-local playerHighlights = {}  -- indexé par joueur
-local gunHighlights = {}     -- indexé par l'objet arme
+local highlights = {}  -- clé = joueur, valeur = Highlight
 
--- Fonction pour créer ou mettre à jour le Highlight d'un joueur
-local function updatePlayerHighlight(plr, color)
-    if not plr then return end
-    -- Si le joueur n'a pas de personnage, on supprime son Highlight
-    if not plr.Character or not plr.Character.Parent then
-        if playerHighlights[plr] then
-            pcall(function() playerHighlights[plr]:Destroy() end)
-            playerHighlights[plr] = nil
+-- Créer un Highlight pour un joueur
+local function createHighlight(plr)
+    if not plr or not plr.Character then return end
+    -- Supprimer l'ancien s'il existe
+    if highlights[plr] then
+        pcall(function() highlights[plr]:Destroy() end)
+        highlights[plr] = nil
+    end
+    local h = Instance.new("Highlight")
+    h.Parent = plr.Character
+    h.FillTransparency = 0.3
+    h.OutlineTransparency = 0
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Enabled = false
+    highlights[plr] = h
+end
+
+-- Quand un joueur spawn, on crée son Highlight
+local function onCharacterAdded(plr, char)
+    task.wait(0.3)
+    createHighlight(plr)
+    updateESP()
+end
+
+-- Initialisation pour les joueurs existants
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= player then
+        plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
+        if plr.Character then
+            task.wait(0.1)
+            createHighlight(plr)
         end
-        return
-    end
-
-    local char = plr.Character
-    -- Si le Highlight existe déjà mais sur un ancien personnage, on le recrée
-    if playerHighlights[plr] and playerHighlights[plr].Parent ~= char then
-        pcall(function() playerHighlights[plr]:Destroy() end)
-        playerHighlights[plr] = nil
-    end
-
-    -- Créer le Highlight s'il n'existe pas
-    if not playerHighlights[plr] then
-        local h = Instance.new("Highlight")
-        h.Parent = char
-        h.FillTransparency = 0.3
-        h.OutlineTransparency = 0
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        playerHighlights[plr] = h
-    end
-
-    local h = playerHighlights[plr]
-    if color then
-        h.FillColor = color
-        h.OutlineColor = color
-        h.Enabled = true
-    else
-        h.Enabled = false
     end
 end
 
--- Nettoyage complet des Highlights
-local function clearAllHighlights()
-    for _, h in pairs(playerHighlights) do
-        pcall(function() h:Destroy() end)
-    end
-    playerHighlights = {}
-    for _, h in pairs(gunHighlights) do
-        pcall(function() h:Destroy() end)
-    end
-    gunHighlights = {}
-end
+-- Nouveau joueur
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
+end)
 
--- Mise à jour principale
-local function updateESP()
-    -- Désactiver tout si aucun ESP n'est actif
-    if not state.MurdererESP and not state.SheriffESP and not state.InnocentESP and not state.GunESP then
-        clearAllHighlights()
-        return
+-- Joueur qui quitte
+Players.PlayerRemoving:Connect(function(plr)
+    if highlights[plr] then
+        pcall(function() highlights[plr]:Destroy() end)
+        highlights[plr] = nil
     end
+end)
 
-    -- Déterminer les rôles
+-- Mise à jour des couleurs (sans destruction)
+function updateESP()
+    -- Trouver le murderer et le sheriff
     local murderer = nil
     local sheriff = nil
     for _, plr in pairs(Players:GetPlayers()) do
@@ -176,68 +166,59 @@ local function updateESP()
         end
     end
 
-    -- Mettre à jour les Highlights des joueurs
+    -- Appliquer les couleurs
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr == player then 
-            -- On cache notre propre personnage
-            updatePlayerHighlight(plr, nil)
-            continue 
-        end
+        if plr == player then continue end
+        local h = highlights[plr]
+        if not h then continue end
 
         local color = nil
         if state.MurdererESP and plr == murderer then
-            color = Color3.fromRGB(255,0,0) -- Rouge
+            color = Color3.fromRGB(255, 0, 0) -- Rouge
         elseif state.SheriffESP and plr == sheriff then
-            color = Color3.fromRGB(0,120,255) -- Bleu
+            color = Color3.fromRGB(0, 120, 255) -- Bleu
         elseif state.InnocentESP and plr ~= murderer and plr ~= sheriff then
-            color = Color3.fromRGB(255,200,0) -- Jaune
+            color = Color3.fromRGB(255, 200, 0) -- Jaune
         end
 
-        updatePlayerHighlight(plr, color)
+        if color then
+            h.FillColor = color
+            h.OutlineColor = color
+            h.Enabled = true
+        else
+            h.Enabled = false
+        end
     end
 
-    -- Gestion des armes au sol
+    -- Armes au sol (version simple)
     if state.GunESP then
-        local guns = {}
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("Tool") and v.Name == "Gun" then
                 if v.Parent and not v.Parent:IsA("Backpack") and not v.Parent:IsA("Character") then
-                    table.insert(guns, v)
+                    if not v:FindFirstChild("GunHighlight") then
+                        local h = Instance.new("Highlight")
+                        h.Name = "GunHighlight"
+                        h.Parent = v
+                        h.FillColor = Color3.fromRGB(0,255,255)
+                        h.FillTransparency = 0.3
+                        h.OutlineColor = Color3.fromRGB(0,255,255)
+                        h.OutlineTransparency = 0
+                        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    end
                 end
             end
         end
-        -- Créer/mettre à jour les Highlights des armes
-        for _, gun in pairs(guns) do
-            if not gunHighlights[gun] then
-                local h = Instance.new("Highlight")
-                h.Parent = gun
-                h.FillColor = Color3.fromRGB(0,255,255)
-                h.FillTransparency = 0.3
-                h.OutlineColor = Color3.fromRGB(0,255,255)
-                h.OutlineTransparency = 0
-                h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                gunHighlights[gun] = h
-            else
-                gunHighlights[gun].Enabled = true
-            end
-        end
-        -- Supprimer les Highlights des armes qui n'existent plus
-        for gun, h in pairs(gunHighlights) do
-            if not gun.Parent or not table.find(guns, gun) then
-                pcall(function() h:Destroy() end)
-                gunHighlights[gun] = nil
-            end
-        end
     else
-        -- Nettoyer les armes si désactivé
-        for gun, h in pairs(gunHighlights) do
-            pcall(function() h:Destroy() end)
+        -- Supprimer les Highlights des armes
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v.Name == "GunHighlight" then
+                pcall(function() v:Destroy() end)
+            end
         end
-        gunHighlights = {}
     end
 end
 
--- Boucle de rafraîchissement toutes les 1.5 secondes
+-- Boucle de rafraîchissement toutes les 1.5s
 spawn(function()
     while task.wait(1.5) do
         if state.MurdererESP or state.SheriffESP or state.InnocentESP or state.GunESP then
@@ -246,38 +227,7 @@ spawn(function()
     end
 end)
 
--- Événements pour forcer une mise à jour
-local function onPlayerAdded(plr)
-    plr.CharacterAdded:Connect(function()
-        task.wait(0.3)
-        updateESP()
-    end)
-end
-
-local function onPlayerRemoving(plr)
-    if playerHighlights[plr] then
-        pcall(function() playerHighlights[plr]:Destroy() end)
-        playerHighlights[plr] = nil
-    end
-end
-
--- Initialisation des joueurs existants
-for _, plr in pairs(Players:GetPlayers()) do
-    if plr ~= player then
-        plr.CharacterAdded:Connect(function() task.wait(0.3); updateESP() end)
-        plr:GetPropertyChangedSignal("Character"):Connect(function()
-            if not plr.Character then
-                if playerHighlights[plr] then
-                    pcall(function() playerHighlights[plr]:Destroy() end)
-                    playerHighlights[plr] = nil
-                end
-            end
-        end)
-    end
-end
-Players.PlayerAdded:Connect(onPlayerAdded)
-Players.PlayerRemoving:Connect(onPlayerRemoving)
-
+-- Mise à jour quand un personnage change
 player.CharacterAdded:Connect(function()
     task.wait(0.5)
     updateESP()
@@ -428,7 +378,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP fonctionnel et fluide\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP simple et fiable\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -601,7 +551,9 @@ SettingsTab:CreateButton({
             player.Character.Humanoid.WalkSpeed = 16
             player.Character.Humanoid.JumpPower = 50
         end
-        clearAllHighlights()
+        -- Supprimer tous les Highlights
+        for _, h in pairs(highlights) do pcall(function() h:Destroy() end) end
+        highlights = {}
         if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
         Rayfield:Notify({ Title = "✅", Content = "Réinitialisé", Duration = 2 })
     end
@@ -612,5 +564,5 @@ SettingsTab:CreateButton({
 -- ============================================
 task.wait(0.5)
 updateESP()
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP réactif – Touche de tir : R", Duration = 4 })
-print("✅ ESP fonctionnel !")
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP fiable – Touche de tir : R", Duration = 4 })
+print("✅ Script avec ESP simple chargé !")
