@@ -1,10 +1,10 @@
 --[[
-    MM2 HUB - ESP intelligent + Tir par clic simulé
+    MM2 HUB - ESP sans freeze + Tir par clic
     Clé : mm2
 ]]
 
 -- ============================================
--- SYSTÈME DE CLÉ
+-- SYSTÈME DE CLÉ (raccourci)
 -- ============================================
 local Key = "mm2"
 local sg = Instance.new("ScreenGui")
@@ -96,185 +96,182 @@ local state = {
     flingTargetName = ""
 }
 
-local espObjects = { Murderer = {}, Sheriff = {}, Innocents = {}, Guns = {} }
 local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
--- Variables pour le suivi intelligent des rôles
-local foundMurderer = nil      -- joueur actuel murderer
-local foundSheriff = nil      -- joueur actuel sheriff
+-- ============================================
+-- ESP OPTIMISÉ (un Highlight par joueur)
+-- ============================================
+local playerHighlights = {}  -- indexé par joueur
+local gunHighlights = {}     -- indexé par l'objet arme
 
--- ============================================
--- FONCTIONS DE RECHERCHE DES RÔLES
--- ============================================
-local function getMurderer()
-    -- Si on a déjà un murderer et qu'il est toujours valide, on le retourne
-    if foundMurderer and foundMurderer.Character and foundMurderer.Character.Parent then
-        local hasKnife = foundMurderer.Backpack:FindFirstChild("Knife") or foundMurderer.Character:FindFirstChild("Knife")
-        if hasKnife then
-            return foundMurderer
+-- Fonction pour obtenir ou créer un Highlight sur un modèle
+local function getHighlight(model, color)
+    if not model then return nil end
+    if not playerHighlights[model] then
+        local h = Instance.new("Highlight")
+        h.Parent = model
+        h.FillTransparency = 0.3
+        h.OutlineTransparency = 0
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        playerHighlights[model] = h
+    end
+    return playerHighlights[model]
+end
+
+local function clearAllHighlights()
+    for model, h in pairs(playerHighlights) do
+        pcall(function() h:Destroy() end)
+    end
+    playerHighlights = {}
+    for _, h in pairs(gunHighlights) do
+        pcall(function() h:Destroy() end)
+    end
+    gunHighlights = {}
+end
+
+-- Mise à jour intelligente (pas de destruction/création)
+local function updateESP()
+    if not state.MurdererESP and not state.SheriffESP and not state.InnocentESP and not state.GunESP then
+        -- Si tout est désactivé, on nettoie
+        clearAllHighlights()
+        return
+    end
+
+    -- Déterminer les rôles
+    local murderer = nil
+    local sheriff = nil
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character.Parent then
+            local hasKnife = plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife")
+            local hasGun = plr.Backpack:FindFirstChild("Gun") or plr.Character:FindFirstChild("Gun")
+            if hasKnife then murderer = plr end
+            if hasGun then sheriff = plr end
         end
     end
-    -- Sinon, on recherche
-    foundMurderer = nil
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character.Parent then
-            if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                foundMurderer = v
-                return v
+
+    -- Parcourir tous les joueurs (sauf nous)
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == player then continue end
+        local model = plr.Character
+        if not model or not model.Parent then
+            -- Si le joueur n'a pas de personnage, on nettoie son Highlight s'il existe
+            if playerHighlights[plr] then
+                pcall(function() playerHighlights[plr]:Destroy() end)
+                playerHighlights[plr] = nil
             end
+            continue
         end
-    end
-    return nil
-end
 
-local function getSheriff()
-    if foundSheriff and foundSheriff.Character and foundSheriff.Character.Parent then
-        local hasGun = foundSheriff.Backpack:FindFirstChild("Gun") or foundSheriff.Character:FindFirstChild("Gun")
-        if hasGun then
-            return foundSheriff
+        local color = nil
+        if state.MurdererESP and plr == murderer then
+            color = Color3.fromRGB(255,0,0) -- Rouge
+        elseif state.SheriffESP and plr == sheriff then
+            color = Color3.fromRGB(0,120,255) -- Bleu
+        elseif state.InnocentESP and plr ~= murderer and plr ~= sheriff then
+            color = Color3.fromRGB(255,200,0) -- Jaune
         end
-    end
-    foundSheriff = nil
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character.Parent then
-            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
-                foundSheriff = v
-                return v
+
+        if color then
+            local h = getHighlight(plr, color)
+            if h then
+                h.FillColor = color
+                h.OutlineColor = color
+                h.Enabled = true
             end
-        end
-    end
-    return nil
-end
-
-local function getGuns()
-    local guns = {}
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Tool") and v.Name == "Gun" then
-            if v.Parent and not v.Parent:IsA("Backpack") and not v.Parent:IsA("Character") then
-                table.insert(guns, v)
-            end
-        end
-    end
-    return guns
-end
-
--- ============================================
--- ESP
--- ============================================
-local function createESP(instance, color)
-    if not instance then return nil end
-    local h = Instance.new("Highlight")
-    h.Parent = instance
-    h.FillColor = color
-    h.FillTransparency = 0.3
-    h.OutlineColor = color
-    h.OutlineTransparency = 0
-    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    return h
-end
-
-local function clearESP(tableName)
-    if not espObjects[tableName] then return end
-    for _, v in pairs(espObjects[tableName]) do
-        pcall(function() v:Destroy() end)
-    end
-    espObjects[tableName] = {}
-end
-
-local function refreshESP()
-    -- MURDERER
-    if state.MurdererESP then
-        clearESP("Murderer")
-        local m = getMurderer()
-        if m and m.Character then
-            local h = createESP(m.Character, Color3.fromRGB(255,0,0))
-            if h then table.insert(espObjects.Murderer, h) end
-        end
-    end
-
-    -- SHERIFF
-    if state.SheriffESP then
-        clearESP("Sheriff")
-        local s = getSheriff()
-        if s and s.Character then
-            local h = createESP(s.Character, Color3.fromRGB(0,120,255))
-            if h then table.insert(espObjects.Sheriff, h) end
-        end
-    end
-
-    -- INNOCENTS (recherche complète à chaque fois, car ils peuvent changer)
-    if state.InnocentESP then
-        clearESP("Innocents")
-        local murderer = getMurderer()
-        local sheriff = getSheriff()
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= player and v.Character and v ~= murderer and v ~= sheriff then
-                local h = createESP(v.Character, Color3.fromRGB(255,200,0))
-                if h then table.insert(espObjects.Innocents, h) end
+        else
+            -- Désactiver le Highlight si le joueur n'a pas de rôle à afficher
+            if playerHighlights[plr] then
+                playerHighlights[plr].Enabled = false
             end
         end
     end
 
-    -- GUNS (rafraîchi à chaque fois)
+    -- Gestion des armes au sol
     if state.GunESP then
-        clearESP("Guns")
-        for _, gun in pairs(getGuns()) do
-            if gun and gun.Parent then
-                local h = createESP(gun, Color3.fromRGB(0,255,255))
-                if h then table.insert(espObjects.Guns, h) end
+        local guns = {}
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Tool") and v.Name == "Gun" then
+                if v.Parent and not v.Parent:IsA("Backpack") and not v.Parent:IsA("Character") then
+                    table.insert(guns, v)
+                end
             end
         end
+        -- Créer/mettre à jour les Highlights des armes
+        for _, gun in pairs(guns) do
+            if not gunHighlights[gun] then
+                local h = Instance.new("Highlight")
+                h.Parent = gun
+                h.FillColor = Color3.fromRGB(0,255,255)
+                h.FillTransparency = 0.3
+                h.OutlineColor = Color3.fromRGB(0,255,255)
+                h.OutlineTransparency = 0
+                h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                gunHighlights[gun] = h
+            else
+                gunHighlights[gun].Enabled = true
+            end
+        end
+        -- Supprimer les Highlights des armes qui n'existent plus
+        for gun, h in pairs(gunHighlights) do
+            if not gun.Parent or not table.find(guns, gun) then
+                pcall(function() h:Destroy() end)
+                gunHighlights[gun] = nil
+            end
+        end
+    else
+        -- Nettoyer les armes si désactivé
+        for gun, h in pairs(gunHighlights) do
+            pcall(function() h:Destroy() end)
+        end
+        gunHighlights = {}
     end
 end
 
--- Boucle de rafraîchissement intelligente
+-- Boucle de rafraîchissement toutes les 1.5 secondes (léger)
 spawn(function()
-    while task.wait(1) do
-        -- On rafraîchit seulement si au moins un ESP est actif
+    while task.wait(1.5) do
         if state.MurdererESP or state.SheriffESP or state.InnocentESP or state.GunESP then
-            refreshESP()
+            updateESP()
         end
     end
 end)
 
--- Événements pour forcer un rafraîchissement quand un joueur meurt ou change
-local function onPlayerRemoved(p)
-    -- Si c'était le murderer ou sheriff, on les réinitialise pour qu'ils soient recherchés
-    if p == foundMurderer then foundMurderer = nil end
-    if p == foundSheriff then foundSheriff = nil end
-    task.wait(0.2)
-    refreshESP()
+-- Événements pour forcer une mise à jour
+local function onPlayerAdded(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.3)
+        updateESP()
+    end)
 end
-Players.PlayerRemoving:Connect(onPlayerRemoved)
 
-local function onCharacterAdded(char)
-    task.wait(0.2)
-    refreshESP()
-end
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= player then
-        p.CharacterAdded:Connect(onCharacterAdded)
+local function onPlayerRemoving(plr)
+    if playerHighlights[plr] then
+        pcall(function() playerHighlights[plr]:Destroy() end)
+        playerHighlights[plr] = nil
     end
 end
-Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(onCharacterAdded) end)
-player.CharacterAdded:Connect(onCharacterAdded)
 
--- Application des stats
-local function applyStats(char)
-    if not char then return end
-    local hum = char:FindFirstChild("Humanoid")
-    if hum then
-        hum.WalkSpeed = state.WalkSpeed
-        hum.JumpPower = state.JumpPower
-    end
-    if state.Noclip then
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= player then
+        plr.CharacterAdded:Connect(function() task.wait(0.3); updateESP() end)
+        plr:GetPropertyChangedSignal("Character"):Connect(function()
+            if not plr.Character then
+                if playerHighlights[plr] then
+                    pcall(function() playerHighlights[plr]:Destroy() end)
+                    playerHighlights[plr] = nil
+                end
+            end
+        end)
     end
 end
-player.CharacterAdded:Connect(applyStats)
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(onPlayerRemoving)
+
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    updateESP()
+end)
 
 -- ============================================
 -- FLY
@@ -323,6 +320,17 @@ end)
 -- ============================================
 -- TIR PAR CLIC SIMULÉ
 -- ============================================
+local function getMurderer()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character.Parent then
+            if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
 local function shootAtMurderer()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
     if not gun then
@@ -349,11 +357,10 @@ local function shootAtMurderer()
         return
     end
 
-    -- Déplacer le curseur
+    -- Déplacer le curseur et simuler le clic
     mouse.X = screenPos.X
     mouse.Y = screenPos.Y
     task.wait(0.02)
-    -- Simuler un clic gauche
     mouse.Button1Click:Fire()
 
     Rayfield:Notify({Title="🔫 Tir !", Content="Tir sur "..murderer.Name, Duration=1})
@@ -414,7 +421,7 @@ local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
 -- Accueil
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP intelligent (rafraîchissement optimisé)\n✅ Tir par clic simulé (sans caméra)\n🔫 Touche personnalisable" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP sans freeze (réutilisation des Highlights)\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -455,23 +462,19 @@ PlayerTab:CreateToggle({
 ESPTab:CreateSection("👁️ ESP")
 ESPTab:CreateToggle({
     Name = "🔴 ESP Murderer", CurrentValue = false, Flag = "MurdererESP",
-    Callback = function(v) state.MurdererESP = v; if v then refreshESP() end
-    end
+    Callback = function(v) state.MurdererESP = v; updateESP() end
 })
 ESPTab:CreateToggle({
     Name = "🔵 ESP Sheriff", CurrentValue = false, Flag = "SheriffESP",
-    Callback = function(v) state.SheriffESP = v; if v then refreshESP() end
-    end
+    Callback = function(v) state.SheriffESP = v; updateESP() end
 })
 ESPTab:CreateToggle({
     Name = "🟡 ESP Innocents", CurrentValue = false, Flag = "InnocentESP",
-    Callback = function(v) state.InnocentESP = v; if v then refreshESP() end
-    end
+    Callback = function(v) state.InnocentESP = v; updateESP() end
 })
 ESPTab:CreateToggle({
     Name = "🔫 ESP Armes", CurrentValue = false, Flag = "GunESP",
-    Callback = function(v) state.GunESP = v; if v then refreshESP() end
-    end
+    Callback = function(v) state.GunESP = v; updateESP() end
 })
 
 -- Combat
@@ -512,7 +515,14 @@ WorldTab:CreateButton({
 WorldTab:CreateButton({
     Name = "🎯 Au Sheriff",
     Callback = function()
-        local s = getSheriff()
+        local s = nil
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= player and v.Character then
+                if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+                    s = v; break
+                end
+            end
+        end
         if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
             player.Character.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
         end
@@ -538,7 +548,17 @@ WorldTab:CreateButton({
 -- Divers
 MiscTab:CreateSection("💥 Fling")
 MiscTab:CreateButton({ Name = "🔪 Fling Murderer", Callback = function() flingPlayer(getMurderer()) end })
-MiscTab:CreateButton({ Name = "🔫 Fling Sheriff", Callback = function() flingPlayer(getSheriff()) end })
+MiscTab:CreateButton({ Name = "🔫 Fling Sheriff", Callback = function()
+    local s = nil
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character then
+            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+                s = v; break
+            end
+        end
+    end
+    flingPlayer(s)
+end })
 MiscTab:CreateInput({
     Name = "👤 Nom du joueur", PlaceholderText = "Pseudo...", Flag = "FlingTargetInput",
     Callback = function(t) state.flingTargetName = t end
@@ -574,10 +594,8 @@ SettingsTab:CreateButton({
             player.Character.Humanoid.WalkSpeed = 16
             player.Character.Humanoid.JumpPower = 50
         end
-        for key, _ in pairs(espObjects) do clearESP(key) end
+        clearAllHighlights()
         if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
-        foundMurderer = nil
-        foundSheriff = nil
         Rayfield:Notify({ Title = "✅", Content = "Réinitialisé", Duration = 2 })
     end
 })
@@ -586,6 +604,6 @@ SettingsTab:CreateButton({
 -- DÉMARRAGE
 -- ============================================
 task.wait(0.5)
-refreshESP()
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP intelligent – Tir par clic – Touche par défaut: R", Duration = 4 })
-print("✅ Script final chargé !")
+updateESP()
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP optimisé (sans freeze) – Touche de tir : R", Duration = 4 })
+print("✅ Script final optimisé chargé !")
