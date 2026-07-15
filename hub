@@ -1,74 +1,189 @@
 --[[
-    MM2 HUB - ESP ultra-léger + armes au sol
+    MM2 HUB - Interface clé moderne (blanc/noir) + ESP optimisé
     Clé : mm2
 ]]
 
 -- ============================================
--- SYSTÈME DE CLÉ (inchangé)
+-- INTERFACE DE CLÉ MODERNE (BLANC / NOIR)
 -- ============================================
 local Key = "mm2"
-local sg = Instance.new("ScreenGui")
-sg.Name = "KeySystem"
-sg.Parent = game.Players.LocalPlayer.PlayerGui
+local TweenService = game:GetService("TweenService")
 
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "KeySystem"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+
+-- Overlay sombre derrière la carte
+local overlay = Instance.new("Frame")
+overlay.Size = UDim2.new(1, 0, 1, 0)
+overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+overlay.BackgroundTransparency = 0.5
+overlay.Parent = screenGui
+
+-- Carte blanche principale
 local f = Instance.new("Frame")
-f.Size = UDim2.new(0, 350, 0, 200)
-f.Position = UDim2.new(0.5, -175, 0.5, -100)
-f.BackgroundColor3 = Color3.fromRGB(30,35,50)
-f.Parent = sg
-Instance.new("UICorner", f).CornerRadius = UDim.new(0,12)
+f.Size = UDim2.new(0, 380, 0, 260)
+f.Position = UDim2.new(0.5, -190, 0.5, -130)
+f.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+f.BackgroundTransparency = 0.2  -- pour l'animation de fondu
+f.Parent = screenGui
 
-local t = Instance.new("TextLabel", f)
-t.Size = UDim2.new(1,0,0,45)
-t.BackgroundTransparency = 1
-t.Text = "🔑 Entrez la clé"
-t.TextColor3 = Color3.fromRGB(255,255,255)
-t.Font = Enum.Font.GothamBold
-t.TextSize = 22
+-- Ombre portée
+local shadow = Instance.new("UIShadow")
+shadow.Color = Color3.fromRGB(0, 0, 0)
+shadow.Offset = Vector2.new(0, 8)
+shadow.BlurRadius = 0.6
+shadow.Parent = f
 
+-- Coins arrondis
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 20)
+corner.Parent = f
+
+-- Scale pour l'animation d'agrandissement
+local uiScale = Instance.new("UIScale")
+uiScale.Scale = 0.85
+uiScale.Parent = f
+
+-- Titre
+local title = Instance.new("TextLabel", f)
+title.Size = UDim2.new(0.8, 0, 0, 35)
+title.Position = UDim2.new(0.5, 0, 0.18, 0)
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.BackgroundTransparency = 1
+title.Text = "🔑 Accès sécurisé"
+title.TextColor3 = Color3.fromRGB(15, 15, 15)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+
+-- Sous-titre
+local subtitle = Instance.new("TextLabel", f)
+subtitle.Size = UDim2.new(0.8, 0, 0, 20)
+subtitle.Position = UDim2.new(0.5, 0, 0.32, 0)
+subtitle.AnchorPoint = Vector2.new(0.5, 0.5)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Entrez votre clé d'accès"
+subtitle.TextColor3 = Color3.fromRGB(130, 130, 130)
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 14
+
+-- Champ de saisie
 local box = Instance.new("TextBox", f)
-box.Size = UDim2.new(0.8,0,0,40)
-box.Position = UDim2.new(0.1,0,0.35,0)
-box.BackgroundColor3 = Color3.fromRGB(20,25,40)
-box.TextColor3 = Color3.fromRGB(255,255,255)
+box.Size = UDim2.new(0.8, 0, 0, 48)
+box.Position = UDim2.new(0.5, 0, 0.48, 0)
+box.AnchorPoint = Vector2.new(0.5, 0.5)
+box.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+box.BorderSizePixel = 1
+box.BorderColor3 = Color3.fromRGB(220, 220, 220)
+box.TextColor3 = Color3.fromRGB(20, 20, 20)
 box.Font = Enum.Font.Gotham
 box.TextSize = 18
-box.PlaceholderText = "Entrez la clé..."
-box.PlaceholderColor3 = Color3.fromRGB(150,160,180)
+box.PlaceholderText = "Clé d'accès..."
+box.PlaceholderColor3 = Color3.fromRGB(170, 170, 170)
 box.Text = ""
-Instance.new("UICorner", box).CornerRadius = UDim.new(0,8)
 
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 10)
+boxCorner.Parent = box
+
+-- Bouton Valider (noir)
 local btn = Instance.new("TextButton", f)
-btn.Size = UDim2.new(0.4,0,0,40)
-btn.Position = UDim2.new(0.3,0,0.65,0)
-btn.BackgroundColor3 = Color3.fromRGB(60,140,255)
-btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.Size = UDim2.new(0.45, 0, 0, 48)
+btn.Position = UDim2.new(0.5, 0, 0.7, 0)
+btn.AnchorPoint = Vector2.new(0.5, 0.5)
+btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+btn.BorderSizePixel = 0
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Font = Enum.Font.GothamBold
 btn.TextSize = 18
 btn.Text = "Valider"
-Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = btn
+
+-- Label d'erreur
 local err = Instance.new("TextLabel", f)
-err.Size = UDim2.new(1,0,0,25)
-err.Position = UDim2.new(0,0,0.85,0)
+err.Size = UDim2.new(0.8, 0, 0, 22)
+err.Position = UDim2.new(0.5, 0, 0.9, 0)
+err.AnchorPoint = Vector2.new(0.5, 0.5)
 err.BackgroundTransparency = 1
 err.Text = ""
-err.TextColor3 = Color3.fromRGB(255,70,70)
+err.TextColor3 = Color3.fromRGB(200, 50, 50)
 err.Font = Enum.Font.Gotham
 err.TextSize = 15
 err.Visible = false
 
-local correct = false
-btn.MouseButton1Click:Connect(function()
-    if box.Text == Key then correct = true; sg:Destroy()
-    else err.Text = "❌ Clé incorrecte"; err.Visible = true; box.Text = "" end
+-- === ANIMATIONS D'APPARITION ===
+local fadeIn = TweenService:Create(f, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    BackgroundTransparency = 0
+})
+local scaleIn = TweenService:Create(uiScale, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    Scale = 1
+})
+fadeIn:Play()
+scaleIn:Play()
+
+-- === EFFET DE SURVOL SUR LE BOUTON ===
+btn.MouseEnter:Connect(function()
+    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(50, 50, 50) }):Play()
 end)
-box.FocusLost:Connect(function(enter) if enter and box.Text == Key then correct = true; sg:Destroy() end end)
-repeat task.wait() until correct
-print("✅ Clé OK")
+btn.MouseLeave:Connect(function()
+    TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(20, 20, 20) }):Play()
+end)
+
+-- === EFFET DE FOCUS SUR LE CHAMP ===
+box.Focused:Connect(function()
+    TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(0, 0, 0) }):Play()
+end)
+box.FocusLost:Connect(function()
+    TweenService:Create(box, TweenInfo.new(0.15), { BorderColor3 = Color3.fromRGB(220, 220, 220) }):Play()
+end)
+
+-- === LOGIQUE DE VALIDATION ===
+local correct = false
+
+local function validateKey()
+    if box.Text == Key then
+        correct = true
+        -- Animation de sortie
+        local fadeOut = TweenService:Create(f, TweenInfo.new(0.2), { BackgroundTransparency = 1 })
+        fadeOut:Play()
+        fadeOut.Completed:Connect(function()
+            screenGui:Destroy()
+        end)
+        TweenService:Create(overlay, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
+    else
+        err.Text = "❌ Clé incorrecte"
+        err.Visible = true
+        box.Text = ""
+        -- Secouer le champ (effet visuel)
+        local origPos = box.Position
+        for i = 1, 3 do
+            TweenService:Create(box, TweenInfo.new(0.05), { Position = origPos + UDim2.new(0.02, 0, 0, 0) }):Play()
+            task.wait(0.05)
+            TweenService:Create(box, TweenInfo.new(0.05), { Position = origPos - UDim2.new(0.02, 0, 0, 0) }):Play()
+            task.wait(0.05)
+        end
+        TweenService:Create(box, TweenInfo.new(0.05), { Position = origPos }):Play()
+    end
+end
+
+btn.MouseButton1Click:Connect(validateKey)
+
+box.FocusLost:Connect(function(enter)
+    if enter then
+        validateKey()
+    end
+end)
+
+-- Attendre que la clé soit validée
+repeat task.wait() until correct == true
+print("✅ Clé correcte !")
 
 -- ============================================
--- RAYFIELD
+-- CHARGEMENT RAYFIELD
 -- ============================================
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 if not Rayfield then return end
@@ -100,12 +215,11 @@ local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
 -- ============================================
--- ESP ULTRA-LÉGER (joueurs + armes au sol)
+-- ESP ULTRA-LÉGER
 -- ============================================
-local playerHighlights = {}  -- key = joueur, value = Highlight
-local gunHighlights = {}     -- key = objet (Tool/Model), value = Highlight
+local playerHighlights = {}
+local gunHighlights = {}
 
--- Créer un Highlight pour un joueur (une seule fois)
 local function createPlayerHighlight(plr)
     if not plr or not plr.Character then return end
     if playerHighlights[plr] then
@@ -121,7 +235,6 @@ local function createPlayerHighlight(plr)
     playerHighlights[plr] = h
 end
 
--- Créer un Highlight pour une arme au sol (une seule fois)
 local function createGunHighlight(gunObj)
     if not gunObj or not gunObj.Parent then return end
     if gunHighlights[gunObj] then
@@ -139,7 +252,6 @@ local function createGunHighlight(gunObj)
     gunHighlights[gunObj] = h
 end
 
--- Mise à jour des couleurs des joueurs (rapide, pas de scan)
 local function updatePlayerColors()
     local murderer = nil
     local sheriff = nil
@@ -176,10 +288,8 @@ local function updatePlayerColors()
     end
 end
 
--- Scan des armes au sol (toutes les 3 secondes)
 local function scanGuns()
     if not state.GunESP then
-        -- Supprimer tous les Highlights d'armes
         for obj, h in pairs(gunHighlights) do
             pcall(function() h:Destroy() end)
         end
@@ -187,7 +297,6 @@ local function scanGuns()
         return
     end
 
-    -- Nettoyer les Highlights des objets qui n'existent plus
     for obj, h in pairs(gunHighlights) do
         if not obj.Parent then
             pcall(function() h:Destroy() end)
@@ -195,13 +304,10 @@ local function scanGuns()
         end
     end
 
-    -- Parcourir tous les outils du workspace
     for _, obj in pairs(workspace:GetDescendants()) do
         if not obj:IsA("Tool") then continue end
-        -- Ne garder que les outils nommés "Gun" (insensible à la casse)
         if not string.find(string.lower(obj.Name), "gun") then continue end
 
-        -- Vérifier que l'outil n'est pas dans un joueur
         local parent = obj.Parent
         local isInPlayer = false
         while parent do
@@ -212,13 +318,11 @@ local function scanGuns()
             parent = parent.Parent
         end
         if isInPlayer then
-            -- Si l'arme est dans un joueur, on supprime son Highlight
             if gunHighlights[obj] then
                 pcall(function() gunHighlights[obj]:Destroy() end)
                 gunHighlights[obj] = nil
             end
         else
-            -- Arme au sol : créer le Highlight si pas encore fait
             if not gunHighlights[obj] then
                 createGunHighlight(obj)
             else
@@ -228,14 +332,13 @@ local function scanGuns()
     end
 end
 
--- Événements pour les joueurs
+-- Événements joueurs
 local function onCharacterAdded(plr, char)
     task.wait(0.3)
     createPlayerHighlight(plr)
     updatePlayerColors()
 end
 
--- Initialisation
 for _, plr in pairs(Players:GetPlayers()) do
     if plr ~= player then
         plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
@@ -261,7 +364,6 @@ player.CharacterAdded:Connect(function()
 end)
 
 -- Boucles de mise à jour
--- Joueurs : toutes les 2 secondes (léger)
 spawn(function()
     while task.wait(2) do
         if state.MurdererESP or state.SheriffESP or state.InnocentESP then
@@ -270,13 +372,11 @@ spawn(function()
     end
 end)
 
--- Armes : toutes les 3 secondes (plus lourd, mais moins fréquent)
 spawn(function()
     while task.wait(3) do
         if state.GunESP then
             scanGuns()
         elseif #gunHighlights > 0 then
-            -- Nettoyer si désactivé
             for obj, h in pairs(gunHighlights) do
                 pcall(function() h:Destroy() end)
             end
@@ -286,7 +386,7 @@ spawn(function()
 end)
 
 -- ============================================
--- FLY (inchangé)
+-- FLY
 -- ============================================
 RunService.Heartbeat:Connect(function()
     if not state.Fly or not player.Character then return end
@@ -412,7 +512,7 @@ local function flingPlayer(targetPlayer)
 end
 
 -- ============================================
--- INTERFACE RAYFIELD (inchangée)
+-- INTERFACE RAYFIELD (version courte pour lisibilité)
 -- ============================================
 local Window = Rayfield:CreateWindow({
     Name = "🔪 MM2 HUB",
@@ -430,7 +530,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ ESP joueurs + armes au sol (cyan)\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Menu clé moderne (blanc/noir)\n✅ ESP joueurs + armes au sol (cyan)\n✅ Tir par clic simulé\n🔫 Touche personnalisable" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -517,7 +617,7 @@ CombatTab:CreateInput({
     end
 })
 
--- Monde, Divers, Paramètres inchangés (j'ai raccourci pour la lisibilité)
+-- Monde
 WorldTab:CreateSection("📍 Téléportation")
 WorldTab:CreateButton({ Name = "🎯 Au Murderer", Callback = function()
     local m = getMurderer()
@@ -547,6 +647,7 @@ WorldTab:CreateButton({ Name = "🗺️ Map", Callback = function()
     if player.Character then player.Character.HumanoidRootPart.Position = pos end
 end })
 
+-- Divers
 MiscTab:CreateSection("💥 Fling")
 MiscTab:CreateButton({ Name = "🔪 Fling Murderer", Callback = function() flingPlayer(getMurderer()) end })
 MiscTab:CreateButton({ Name = "🔫 Fling Sheriff", Callback = function()
@@ -571,6 +672,7 @@ MiscTab:CreateButton({ Name = "🔄 Reset", Callback = function() if player.Char
 MiscTab:CreateButton({ Name = "❤️ Soin", Callback = function() if player.Character and player.Character.Humanoid then player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth end end })
 MiscTab:CreateButton({ Name = "🔄 Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, player) end })
 
+-- Paramètres
 SettingsTab:CreateSection("⚙️")
 SettingsTab:CreateButton({ Name = "❌ Fermer", Callback = function() Window:Destroy() end })
 SettingsTab:CreateButton({
@@ -603,5 +705,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP armes au sol – Touche de tir : R", Duration = 4 })
-print("✅ Script ultra-léger chargé !")
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Menu moderne – ESP armes au sol – Touche de tir : R", Duration = 4 })
+print("✅ Script avec menu moderne chargé !")
