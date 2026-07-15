@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (ultime)
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (version finale)
     Clé : mm2
 ]]
 
@@ -446,7 +446,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (ULTIME - ReplicatedStorage.Remotes.Gun)
+-- SHOOT SHERIFF (VERSION ULTIME)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -473,7 +473,7 @@ local function shootSheriff()
         task.wait(0.1)
     end
 
-    -- === MÉTHODE ULTIME : ReplicatedStorage.Remotes.Gun ===
+    -- === MÉTHODE 1 : ReplicatedStorage.Remotes.Gun ===
     local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
     if remote then
         local gunRemote = remote:FindFirstChild("Gun")
@@ -490,7 +490,54 @@ local function shootSheriff()
         end
     end
 
-    -- Fallback : Activate/Deactivate
+    -- === MÉTHODE 2 : ReplicatedStorage.Shoot ===
+    local remote2 = game:GetService("ReplicatedStorage"):FindFirstChild("Shoot")
+    if remote2 and remote2:IsA("RemoteEvent") then
+        pcall(function()
+            remote2:FireServer(target.Position)
+        end)
+        Rayfield:Notify({
+            Title = "🔫 Tir !",
+            Content = "Tu as tiré sur " .. murderer.Name,
+            Duration = 1
+        })
+        return
+    end
+
+    -- === MÉTHODE 3 : ReplicatedStorage.Gun ===
+    local remote3 = game:GetService("ReplicatedStorage"):FindFirstChild("Gun")
+    if remote3 and remote3:IsA("RemoteEvent") then
+        pcall(function()
+            remote3:FireServer(target.Position)
+        end)
+        Rayfield:Notify({
+            Title = "🔫 Tir !",
+            Content = "Tu as tiré sur " .. murderer.Name,
+            Duration = 1
+        })
+        return
+    end
+
+    -- === MÉTHODE 4 : n'importe quel RemoteEvent contenant "shoot" ===
+    local found = false
+    for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+        if obj:IsA("RemoteEvent") and string.find(string.lower(obj.Name), "shoot") then
+            pcall(function()
+                obj:FireServer(target.Position)
+                found = true
+            end)
+        end
+    end
+    if found then
+        Rayfield:Notify({
+            Title = "🔫 Tir !",
+            Content = "Tu as tiré sur " .. murderer.Name,
+            Duration = 1
+        })
+        return
+    end
+
+    -- === FALLBACK FINAL ===
     gun:Activate()
     task.wait(0.1)
     gun:Deactivate()
@@ -537,7 +584,7 @@ local function flingPlayer(targetPlayer)
 end
 
 -- ============================================
--- INTERFACE RAYFIELD (version courte pour lisibilité)
+-- INTERFACE RAYFIELD (version courte)
 -- ============================================
 local Window = Rayfield:CreateWindow({
     Name = "🔪 MM2 HUB",
@@ -555,7 +602,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (ultime)" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (version ultime)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
