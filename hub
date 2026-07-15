@@ -1,5 +1,5 @@
 --[[
-    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (méthodes multiples)
+    MM2 HUB - Interface clé personnalisée + Shoot Sheriff (ultime)
     Clé : mm2
 ]]
 
@@ -446,7 +446,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (méthodes multiples)
+-- SHOOT SHERIFF (ULTIME - ReplicatedStorage.Remotes.Gun)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -473,60 +473,14 @@ local function shootSheriff()
         task.wait(0.1)
     end
 
-    -- === MÉTHODE 1 : Clic simulé avec mouse1click() ===
-    local fired = false
-    local success, result = pcall(function()
-        local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(target.Position + Vector3.new(0, 1.5, 0))
-        if onScreen then
-            local mouse = player:GetMouse()
-            mouse.X = screenPos.X
-            mouse.Y = screenPos.Y
-            task.wait(0.05)
-            mouse1click()
-            fired = true
-        end
-    end)
-
-    if fired then
-        Rayfield:Notify({
-            Title = "🔫 Tir !",
-            Content = "Tu as tiré sur " .. murderer.Name,
-            Duration = 1
-        })
-        return
-    end
-
-    -- === MÉTHODE 2 : RemoteEvent ===
-    local remote = nil
-    local replicatedStorage = game:GetService("ReplicatedStorage")
-    
-    for _, obj in pairs(replicatedStorage:GetDescendants()) do
-        if obj:IsA("RemoteEvent") and (
-            string.find(string.lower(obj.Name), "shoot") or 
-            string.find(string.lower(obj.Name), "fire") or 
-            string.find(string.lower(obj.Name), "gun") or
-            string.find(string.lower(obj.Name), "shootgun")
-        ) then
-            remote = obj
-            break
-        end
-    end
-    
-    if not remote then
-        for _, obj in pairs(gun:GetDescendants()) do
-            if obj:IsA("RemoteEvent") then
-                remote = obj
-                break
-            end
-        end
-    end
-
+    -- === MÉTHODE ULTIME : ReplicatedStorage.Remotes.Gun ===
+    local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
     if remote then
-        pcall(function()
-            remote:FireServer(target.Position)
-            fired = true
-        end)
-        if fired then
+        local gunRemote = remote:FindFirstChild("Gun")
+        if gunRemote and gunRemote:IsA("RemoteEvent") then
+            pcall(function()
+                gunRemote:FireServer(target.Position)
+            end)
             Rayfield:Notify({
                 Title = "🔫 Tir !",
                 Content = "Tu as tiré sur " .. murderer.Name,
@@ -536,12 +490,12 @@ local function shootSheriff()
         end
     end
 
-    -- === MÉTHODE 3 : Activate/Deactivate ===
+    -- Fallback : Activate/Deactivate
     gun:Activate()
-    task.wait(0.05)
+    task.wait(0.1)
     gun:Deactivate()
     Rayfield:Notify({
-        Title = "🔫 Tir !",
+        Title = "🔫 Tir (fallback)",
         Content = "Tu as tiré sur " .. murderer.Name,
         Duration = 1
     })
@@ -583,7 +537,7 @@ local function flingPlayer(targetPlayer)
 end
 
 -- ============================================
--- INTERFACE RAYFIELD
+-- INTERFACE RAYFIELD (version courte pour lisibilité)
 -- ============================================
 local Window = Rayfield:CreateWindow({
     Name = "🔪 MM2 HUB",
@@ -601,7 +555,7 @@ local WorldTab = Window:CreateTab("🌍 Monde")
 local MiscTab = Window:CreateTab("🔧 Divers")
 local SettingsTab = Window:CreateTab("⚙️ Paramètres")
 
-MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (multi-méthodes)" })
+MainTab:CreateParagraph({ Title = "🔪 MM2 HUB", Content = "✅ Interface clé personnalisée\n✅ ESP joueurs + armes au sol\n✅ Shoot Sheriff (ultime)" })
 
 -- Joueur
 PlayerTab:CreateSection("🏃 Mouvement")
@@ -772,5 +726,5 @@ SettingsTab:CreateButton({
 task.wait(0.5)
 updatePlayerColors()
 if state.GunESP then scanGuns() end
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (multi-méthodes)", Duration = 4 })
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "Interface personnalisée – Shoot Sheriff (ultime)", Duration = 4 })
 print("✅ Script complet chargé !")
