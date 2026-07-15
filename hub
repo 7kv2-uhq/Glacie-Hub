@@ -1,10 +1,10 @@
 --[[
-    MM2 HUB - ESP fiable (joueurs + armes) + Tir par clic
+    MM2 HUB - ESP ultra-léger + armes au sol
     Clé : mm2
 ]]
 
 -- ============================================
--- SYSTÈME DE CLÉ
+-- SYSTÈME DE CLÉ (inchangé)
 -- ============================================
 local Key = "mm2"
 local sg = Instance.new("ScreenGui")
@@ -100,12 +100,12 @@ local bodyVelocity = nil
 local flyKeys = { W = false, A = false, S = false, D = false, Space = false, Shift = false }
 
 -- ============================================
--- ESP SIMPLE ET FIABLE (joueurs + armes)
+-- ESP ULTRA-LÉGER (joueurs + armes au sol)
 -- ============================================
-local playerHighlights = {}  -- clé = joueur, valeur = Highlight
-local gunHighlights = {}     -- clé = objet (Tool/Model), valeur = Highlight
+local playerHighlights = {}  -- key = joueur, value = Highlight
+local gunHighlights = {}     -- key = objet (Tool/Model), value = Highlight
 
--- Créer un Highlight pour un joueur
+-- Créer un Highlight pour un joueur (une seule fois)
 local function createPlayerHighlight(plr)
     if not plr or not plr.Character then return end
     if playerHighlights[plr] then
@@ -121,17 +121,16 @@ local function createPlayerHighlight(plr)
     playerHighlights[plr] = h
 end
 
--- Créer un Highlight pour une arme au sol
+-- Créer un Highlight pour une arme au sol (une seule fois)
 local function createGunHighlight(gunObj)
     if not gunObj or not gunObj.Parent then return end
-    -- Si un Highlight existe déjà sur cet objet, on le supprime
     if gunHighlights[gunObj] then
         pcall(function() gunHighlights[gunObj]:Destroy() end)
         gunHighlights[gunObj] = nil
     end
     local h = Instance.new("Highlight")
     h.Parent = gunObj
-    h.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
+    h.FillColor = Color3.fromRGB(0, 255, 255)
     h.FillTransparency = 0.3
     h.OutlineColor = Color3.fromRGB(0, 255, 255)
     h.OutlineTransparency = 0
@@ -140,40 +139,8 @@ local function createGunHighlight(gunObj)
     gunHighlights[gunObj] = h
 end
 
--- Quand un joueur spawn, on crée son Highlight
-local function onCharacterAdded(plr, char)
-    task.wait(0.3)
-    createPlayerHighlight(plr)
-    updateESP()
-end
-
--- Initialisation pour les joueurs existants
-for _, plr in pairs(Players:GetPlayers()) do
-    if plr ~= player then
-        plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
-        if plr.Character then
-            task.wait(0.1)
-            createPlayerHighlight(plr)
-        end
-    end
-end
-
--- Nouveau joueur
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
-end)
-
--- Joueur qui quitte
-Players.PlayerRemoving:Connect(function(plr)
-    if playerHighlights[plr] then
-        pcall(function() playerHighlights[plr]:Destroy() end)
-        playerHighlights[plr] = nil
-    end
-end)
-
--- Mise à jour complète (couleurs joueurs + armes)
-function updateESP()
-    -- === JOUEURS ===
+-- Mise à jour des couleurs des joueurs (rapide, pas de scan)
+local function updatePlayerColors()
     local murderer = nil
     local sheriff = nil
     for _, plr in pairs(Players:GetPlayers()) do
@@ -192,11 +159,11 @@ function updateESP()
 
         local color = nil
         if state.MurdererESP and plr == murderer then
-            color = Color3.fromRGB(255, 0, 0) -- Rouge
+            color = Color3.fromRGB(255, 0, 0)
         elseif state.SheriffESP and plr == sheriff then
-            color = Color3.fromRGB(0, 120, 255) -- Bleu
+            color = Color3.fromRGB(0, 120, 255)
         elseif state.InnocentESP and plr ~= murderer and plr ~= sheriff then
-            color = Color3.fromRGB(255, 200, 0) -- Jaune
+            color = Color3.fromRGB(255, 200, 0)
         end
 
         if color then
@@ -207,85 +174,119 @@ function updateESP()
             h.Enabled = false
         end
     end
+end
 
-    -- === ARMES AU SOL ===
-    if state.GunESP then
-        -- Parcourir tous les objets du workspace
-        for _, obj in pairs(workspace:GetDescendants()) do
-            -- Vérifier si l'objet est une arme (Tool nommé "Gun" ou contenant "Gun" dans son nom)
-            local isGun = false
-            local targetObj = nil
-            if obj:IsA("Tool") and string.find(obj.Name, "Gun") then
-                isGun = true
-                targetObj = obj
-            elseif obj:IsA("Model") and string.find(obj.Name, "Gun") then
-                -- Parfois les armes sont des modèles avec un Tool à l'intérieur
-                isGun = true
-                targetObj = obj
-            end
-
-            if isGun and targetObj then
-                -- Vérifier que l'arme n'est pas dans un joueur (Backpack ou Character)
-                local parent = targetObj.Parent
-                local isInPlayer = false
-                while parent do
-                    if parent:IsA("Backpack") or parent:IsA("Character") or parent:IsA("Player") then
-                        isInPlayer = true
-                        break
-                    end
-                    parent = parent.Parent
-                end
-                if not isInPlayer then
-                    -- Créer le Highlight si pas déjà fait
-                    if not gunHighlights[targetObj] then
-                        createGunHighlight(targetObj)
-                    else
-                        -- S'assurer qu'il est activé
-                        gunHighlights[targetObj].Enabled = true
-                    end
-                else
-                    -- Si l'arme est dans un joueur, on supprime son Highlight
-                    if gunHighlights[targetObj] then
-                        pcall(function() gunHighlights[targetObj]:Destroy() end)
-                        gunHighlights[targetObj] = nil
-                    end
-                end
-            end
-        end
-
-        -- Nettoyer les Highlights des armes qui n'existent plus
-        for gunObj, h in pairs(gunHighlights) do
-            if not gunObj.Parent then
-                pcall(function() h:Destroy() end)
-                gunHighlights[gunObj] = nil
-            end
-        end
-    else
-        -- Supprimer tous les Highlights des armes
-        for gunObj, h in pairs(gunHighlights) do
+-- Scan des armes au sol (toutes les 3 secondes)
+local function scanGuns()
+    if not state.GunESP then
+        -- Supprimer tous les Highlights d'armes
+        for obj, h in pairs(gunHighlights) do
             pcall(function() h:Destroy() end)
         end
         gunHighlights = {}
+        return
+    end
+
+    -- Nettoyer les Highlights des objets qui n'existent plus
+    for obj, h in pairs(gunHighlights) do
+        if not obj.Parent then
+            pcall(function() h:Destroy() end)
+            gunHighlights[obj] = nil
+        end
+    end
+
+    -- Parcourir tous les outils du workspace
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if not obj:IsA("Tool") then continue end
+        -- Ne garder que les outils nommés "Gun" (insensible à la casse)
+        if not string.find(string.lower(obj.Name), "gun") then continue end
+
+        -- Vérifier que l'outil n'est pas dans un joueur
+        local parent = obj.Parent
+        local isInPlayer = false
+        while parent do
+            if parent:IsA("Character") or parent:IsA("Backpack") or parent:IsA("Player") then
+                isInPlayer = true
+                break
+            end
+            parent = parent.Parent
+        end
+        if isInPlayer then
+            -- Si l'arme est dans un joueur, on supprime son Highlight
+            if gunHighlights[obj] then
+                pcall(function() gunHighlights[obj]:Destroy() end)
+                gunHighlights[obj] = nil
+            end
+        else
+            -- Arme au sol : créer le Highlight si pas encore fait
+            if not gunHighlights[obj] then
+                createGunHighlight(obj)
+            else
+                gunHighlights[obj].Enabled = true
+            end
+        end
     end
 end
 
--- Boucle de rafraîchissement toutes les 1.5s
+-- Événements pour les joueurs
+local function onCharacterAdded(plr, char)
+    task.wait(0.3)
+    createPlayerHighlight(plr)
+    updatePlayerColors()
+end
+
+-- Initialisation
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= player then
+        plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
+        if plr.Character then
+            task.wait(0.1)
+            createPlayerHighlight(plr)
+        end
+    end
+end
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function(char) onCharacterAdded(plr, char) end)
+end)
+Players.PlayerRemoving:Connect(function(plr)
+    if playerHighlights[plr] then
+        pcall(function() playerHighlights[plr]:Destroy() end)
+        playerHighlights[plr] = nil
+    end
+end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    updatePlayerColors()
+end)
+
+-- Boucles de mise à jour
+-- Joueurs : toutes les 2 secondes (léger)
 spawn(function()
-    while task.wait(1.5) do
-        if state.MurdererESP or state.SheriffESP or state.InnocentESP or state.GunESP then
-            updateESP()
+    while task.wait(2) do
+        if state.MurdererESP or state.SheriffESP or state.InnocentESP then
+            updatePlayerColors()
         end
     end
 end)
 
--- Mise à jour quand un personnage change
-player.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    updateESP()
+-- Armes : toutes les 3 secondes (plus lourd, mais moins fréquent)
+spawn(function()
+    while task.wait(3) do
+        if state.GunESP then
+            scanGuns()
+        elseif #gunHighlights > 0 then
+            -- Nettoyer si désactivé
+            for obj, h in pairs(gunHighlights) do
+                pcall(function() h:Destroy() end)
+            end
+            gunHighlights = {}
+        end
+    end
 end)
 
 -- ============================================
--- FLY
+-- FLY (inchangé)
 -- ============================================
 RunService.Heartbeat:Connect(function()
     if not state.Fly or not player.Character then return end
@@ -411,7 +412,7 @@ local function flingPlayer(targetPlayer)
 end
 
 -- ============================================
--- INTERFACE RAYFIELD
+-- INTERFACE RAYFIELD (inchangée)
 -- ============================================
 local Window = Rayfield:CreateWindow({
     Name = "🔪 MM2 HUB",
@@ -470,19 +471,26 @@ PlayerTab:CreateToggle({
 ESPTab:CreateSection("👁️ ESP")
 ESPTab:CreateToggle({
     Name = "🔴 ESP Murderer", CurrentValue = false, Flag = "MurdererESP",
-    Callback = function(v) state.MurdererESP = v; updateESP() end
+    Callback = function(v) state.MurdererESP = v; updatePlayerColors() end
 })
 ESPTab:CreateToggle({
     Name = "🔵 ESP Sheriff", CurrentValue = false, Flag = "SheriffESP",
-    Callback = function(v) state.SheriffESP = v; updateESP() end
+    Callback = function(v) state.SheriffESP = v; updatePlayerColors() end
 })
 ESPTab:CreateToggle({
     Name = "🟡 ESP Innocents", CurrentValue = false, Flag = "InnocentESP",
-    Callback = function(v) state.InnocentESP = v; updateESP() end
+    Callback = function(v) state.InnocentESP = v; updatePlayerColors() end
 })
 ESPTab:CreateToggle({
     Name = "🔫 ESP Armes (cyan)", CurrentValue = false, Flag = "GunESP",
-    Callback = function(v) state.GunESP = v; updateESP() end
+    Callback = function(v)
+        state.GunESP = v
+        if v then scanGuns()
+        else
+            for obj, h in pairs(gunHighlights) do pcall(function() h:Destroy() end) end
+            gunHighlights = {}
+        end
+    end
 })
 
 -- Combat
@@ -509,82 +517,60 @@ CombatTab:CreateInput({
     end
 })
 
--- Monde
+-- Monde, Divers, Paramètres inchangés (j'ai raccourci pour la lisibilité)
 WorldTab:CreateSection("📍 Téléportation")
-WorldTab:CreateButton({
-    Name = "🎯 Au Murderer",
-    Callback = function()
-        local m = getMurderer()
-        if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Position = m.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
+WorldTab:CreateButton({ Name = "🎯 Au Murderer", Callback = function()
+    local m = getMurderer()
+    if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.Position = m.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
+    end
+end })
+WorldTab:CreateButton({ Name = "🎯 Au Sheriff", Callback = function()
+    local s = nil
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character then
+            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then s = v; break end
         end
     end
-})
-WorldTab:CreateButton({
-    Name = "🎯 Au Sheriff",
-    Callback = function()
-        local s = nil
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= player and v.Character then
-                if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
-                    s = v; break
-                end
-            end
-        end
-        if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
-        end
+    if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.Position = s.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)
     end
-})
-WorldTab:CreateButton({
-    Name = "🏠 Lobby",
-    Callback = function()
-        local lobby = workspace:FindFirstChild("Lobby") or workspace:FindFirstChild("LobbySpawn")
-        local pos = (lobby and lobby:FindFirstChild("HumanoidRootPart") and lobby.HumanoidRootPart.Position + Vector3.new(0,5,0)) or Vector3.new(0,50,0)
-        if player.Character then player.Character.HumanoidRootPart.Position = pos end
-    end
-})
-WorldTab:CreateButton({
-    Name = "🗺️ Map",
-    Callback = function()
-        local map = workspace:FindFirstChild("Map") or workspace:FindFirstChild("Game")
-        local pos = (map and map:FindFirstChild("HumanoidRootPart") and map.HumanoidRootPart.Position + Vector3.new(0,5,0)) or Vector3.new(0,100,0)
-        if player.Character then player.Character.HumanoidRootPart.Position = pos end
-    end
-})
+end })
+WorldTab:CreateButton({ Name = "🏠 Lobby", Callback = function()
+    local lobby = workspace:FindFirstChild("Lobby") or workspace:FindFirstChild("LobbySpawn")
+    local pos = (lobby and lobby:FindFirstChild("HumanoidRootPart") and lobby.HumanoidRootPart.Position + Vector3.new(0,5,0)) or Vector3.new(0,50,0)
+    if player.Character then player.Character.HumanoidRootPart.Position = pos end
+end })
+WorldTab:CreateButton({ Name = "🗺️ Map", Callback = function()
+    local map = workspace:FindFirstChild("Map") or workspace:FindFirstChild("Game")
+    local pos = (map and map:FindFirstChild("HumanoidRootPart") and map.HumanoidRootPart.Position + Vector3.new(0,5,0)) or Vector3.new(0,100,0)
+    if player.Character then player.Character.HumanoidRootPart.Position = pos end
+end })
 
--- Divers
 MiscTab:CreateSection("💥 Fling")
 MiscTab:CreateButton({ Name = "🔪 Fling Murderer", Callback = function() flingPlayer(getMurderer()) end })
 MiscTab:CreateButton({ Name = "🔫 Fling Sheriff", Callback = function()
     local s = nil
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= player and v.Character then
-            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
-                s = v; break
-            end
+            if v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then s = v; break end
         end
     end
     flingPlayer(s)
 end })
-MiscTab:CreateInput({
-    Name = "👤 Nom du joueur", PlaceholderText = "Pseudo...", Flag = "FlingTargetInput",
+MiscTab:CreateInput({ Name = "👤 Nom du joueur", PlaceholderText = "Pseudo...", Flag = "FlingTargetInput",
     Callback = function(t) state.flingTargetName = t end
 })
-MiscTab:CreateButton({
-    Name = "💥 Fling ce joueur",
-    Callback = function()
-        local target = Players:FindFirstChild(state.flingTargetName)
-        if target then flingPlayer(target) else Rayfield:Notify({ Title = "❌", Content = "Introuvable", Duration = 2 }) end
-    end
-})
+MiscTab:CreateButton({ Name = "💥 Fling ce joueur", Callback = function()
+    local target = Players:FindFirstChild(state.flingTargetName)
+    if target then flingPlayer(target) else Rayfield:Notify({ Title = "❌", Content = "Introuvable", Duration = 2 }) end
+end })
 
 MiscTab:CreateSection("🔄 Utilitaires")
 MiscTab:CreateButton({ Name = "🔄 Reset", Callback = function() if player.Character then player.Character:BreakJoints() end end })
 MiscTab:CreateButton({ Name = "❤️ Soin", Callback = function() if player.Character and player.Character.Humanoid then player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth end end })
 MiscTab:CreateButton({ Name = "🔄 Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, player) end })
 
--- Paramètres
 SettingsTab:CreateSection("⚙️")
 SettingsTab:CreateButton({ Name = "❌ Fermer", Callback = function() Window:Destroy() end })
 SettingsTab:CreateButton({
@@ -602,7 +588,6 @@ SettingsTab:CreateButton({
             player.Character.Humanoid.WalkSpeed = 16
             player.Character.Humanoid.JumpPower = 50
         end
-        -- Supprimer tous les Highlights
         for _, h in pairs(playerHighlights) do pcall(function() h:Destroy() end) end
         playerHighlights = {}
         for _, h in pairs(gunHighlights) do pcall(function() h:Destroy() end) end
@@ -616,6 +601,7 @@ SettingsTab:CreateButton({
 -- DÉMARRAGE
 -- ============================================
 task.wait(0.5)
-updateESP()
-Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP armes au sol (cyan) – Touche de tir : R", Duration = 4 })
-print("✅ Script avec armes fonctionnel !")
+updatePlayerColors()
+if state.GunESP then scanGuns() end
+Rayfield:Notify({ Title = "✅ MM2 HUB", Content = "ESP armes au sol – Touche de tir : R", Duration = 4 })
+print("✅ Script ultra-léger chargé !")
