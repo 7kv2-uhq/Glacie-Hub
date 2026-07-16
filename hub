@@ -448,114 +448,62 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (AUTO-AIM VIA REMOTES + FALLBACK)
+-- SHOOT SHERIFF (avec WeaponService.GunFired)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
     if not gun then
-        Rayfield:Notify({ Title = "❌ Not Sheriff", Content = "You don't have a gun!", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Pas Sheriff", Content = "Tu n'as pas de pistolet !", Duration = 2 })
         return
     end
 
     local murderer = getMurderer()
     if not murderer or not murderer.Character then
-        Rayfield:Notify({ Title = "❌ Murderer", Content = "Not found", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Murderer", Content = "Introuvable", Duration = 2 })
         return
     end
 
     local target = murderer.Character:FindFirstChild("HumanoidRootPart") or murderer.Character:FindFirstChild("Head")
     if not target then
-        Rayfield:Notify({ Title = "❌ Target", Content = "Cannot aim", Duration = 2 })
+        Rayfield:Notify({ Title = "❌ Cible", Content = "Impossible de viser", Duration = 2 })
         return
     end
 
-    -- Equip gun
+    -- Équiper le pistolet
     if gun.Parent ~= player.Character then
         gun.Parent = player.Character
         task.wait(0.1)
     end
 
-    local targetPos = target.Position + Vector3.new(0, 1.5, 0) -- chest height
-    local replicatedStorage = game:GetService("ReplicatedStorage")
-    local remoteFired = false
-
-    -- === STRATEGY 1: Try known RemoteEvent locations ===
-    local remotesFolder = replicatedStorage:FindFirstChild("Remotes")
-    local remoteNames = { "Gun", "Shoot", "Fire", "GunShoot", "ShootGun" }
-    
-    if remotesFolder then
-        for _, name in pairs(remoteNames) do
-            local remote = remotesFolder:FindFirstChild(name)
-            if remote and remote:IsA("RemoteEvent") then
-                local success = pcall(function()
-                    remote:FireServer(targetPos)
-                end)
-                if success then
-                    remoteFired = true
-                    Rayfield:Notify({
-                        Title = "🔫 Shot!",
-                        Content = "You shot " .. murderer.Name .. " (Remote: " .. remote.Name .. ")",
-                        Duration = 1
-                    })
-                    return
-                end
-            end
+    -- === REMOTEEVENT TROUVÉ : WeaponService.GunFired ===
+    local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("WeaponService")
+    if weaponService then
+        local gunFired = weaponService:FindFirstChild("GunFired")
+        if gunFired and gunFired:IsA("RemoteEvent") then
+            pcall(function()
+                gunFired:FireServer(target.Position)
+            end)
+            Rayfield:Notify({
+                Title = "🔫 Tir !",
+                Content = "Tu as tiré sur " .. murderer.Name,
+                Duration = 1
+            })
+            return
         end
     end
 
-    -- === STRATEGY 2: Scan all RemoteEvents in ReplicatedStorage ===
-    if not remoteFired then
-        for _, obj in pairs(replicatedStorage:GetDescendants()) do
-            if obj:IsA("RemoteEvent") then
-                local success = pcall(function()
-                    obj:FireServer(targetPos)
-                end)
-                if success then
-                    remoteFired = true
-                    Rayfield:Notify({
-                        Title = "🔫 Shot!",
-                        Content = "You shot " .. murderer.Name .. " (Remote: " .. obj.Name .. ")",
-                        Duration = 1
-                    })
-                    return
-                end
-            end
-        end
-    end
-
-    -- === STRATEGY 3: Scan inside the gun itself ===
-    if not remoteFired then
-        for _, obj in pairs(gun:GetDescendants()) do
-            if obj:IsA("RemoteEvent") then
-                local success = pcall(function()
-                    obj:FireServer(targetPos)
-                end)
-                if success then
-                    remoteFired = true
-                    Rayfield:Notify({
-                        Title = "🔫 Shot!",
-                        Content = "You shot " .. murderer.Name .. " (Remote: " .. obj.Name .. ")",
-                        Duration = 1
-                    })
-                    return
-                end
-            end
-        end
-    end
-
-    -- === STRATEGY 4: FALLBACK (Invisible Orientation + Activate/Deactivate) ===
-    -- This ALWAYS works. The rotation is instant (1 frame), you won't see it.
+    -- === FALLBACK : orientation invisible + Activate/Deactivate ===
     local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
     if playerHRP then
-        playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
+        playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, target.Position + Vector3.new(0, 1.5, 0))
     end
     gun:Activate()
     task.wait(0.05)
     gun:Deactivate()
-    
+
     Rayfield:Notify({
-        Title = "🔫 Shot! (Fallback)",
-        Content = "You shot " .. murderer.Name,
+        Title = "🔫 Tir (fallback)",
+        Content = "Tu as tiré sur " .. murderer.Name,
         Duration = 1
     })
 end
@@ -612,7 +560,7 @@ local ESPTab = Window:CreateTab("👁️ ESP")
 local CombatTab = Window:CreateTab("⚔️ Combat")
 local WorldTab = Window:CreateTab("🌍 World")
 local MiscTab = Window:CreateTab("🔧 Misc")
-local SaveTab = Window:CreateTab("💾 Save")  -- New tab before Settings
+local SaveTab = Window:CreateTab("💾 Save")
 local SettingsTab = Window:CreateTab("⚙️ Settings")
 
 MainTab:CreateParagraph({ Title = "Glacie Hub", Content = "✅ Custom key system\n✅ ESP (Players + Guns)\n✅ Shoot Sheriff (auto-aim)\n🔫 Customizable shoot key" })
