@@ -448,7 +448,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (avec WeaponService.GunFired)
+-- SHOOT SHERIFF (AUTO-AIM AVEC GUNFIRED)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -475,13 +475,16 @@ local function shootSheriff()
         task.wait(0.1)
     end
 
-    -- === REMOTEEVENT TROUVÉ : WeaponService.GunFired ===
+    -- Position du buste du murderer
+    local targetPos = target.Position + Vector3.new(0, 1.5, 0)
+
+    -- === MÉTHODE 1 : RemoteEvent "GunFired" dans WeaponService ===
     local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("WeaponService")
     if weaponService then
         local gunFired = weaponService:FindFirstChild("GunFired")
         if gunFired and gunFired:IsA("RemoteEvent") then
             pcall(function()
-                gunFired:FireServer(target.Position)
+                gunFired:FireServer(targetPos)
             end)
             Rayfield:Notify({
                 Title = "🔫 Tir !",
@@ -492,10 +495,24 @@ local function shootSheriff()
         end
     end
 
-    -- === FALLBACK : orientation invisible + Activate/Deactivate ===
+    -- === MÉTHODE 2 : Recherche générale de "GunFired" ===
+    local gunFired = game:GetService("ReplicatedStorage"):FindFirstChild("GunFired", true)
+    if gunFired and gunFired:IsA("RemoteEvent") then
+        pcall(function()
+            gunFired:FireServer(targetPos)
+        end)
+        Rayfield:Notify({
+            Title = "🔫 Tir !",
+            Content = "Tu as tiré sur " .. murderer.Name,
+            Duration = 1
+        })
+        return
+    end
+
+    -- === MÉTHODE 3 : FALLBACK (orientation invisible + Activate/Deactivate) ===
     local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
     if playerHRP then
-        playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, target.Position + Vector3.new(0, 1.5, 0))
+        playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
     end
     gun:Activate()
     task.wait(0.05)
