@@ -448,7 +448,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
 end)
 
 -- ============================================
--- SHOOT SHERIFF (AUTO-AIM AVEC GUNFIRED)
+-- SHOOT SHERIFF (AUTO-AIM PAR CLIC SIMULÉ)
 -- ============================================
 local function shootSheriff()
     local gun = player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun")
@@ -475,51 +475,27 @@ local function shootSheriff()
         task.wait(0.1)
     end
 
-    -- Position du buste du murderer
+    -- Position du buste du murderer à l'écran
     local targetPos = target.Position + Vector3.new(0, 1.5, 0)
+    local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(targetPos)
 
-    -- === MÉTHODE 1 : RemoteEvent "GunFired" dans WeaponService ===
-    local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("WeaponService")
-    if weaponService then
-        local gunFired = weaponService:FindFirstChild("GunFired")
-        if gunFired and gunFired:IsA("RemoteEvent") then
-            pcall(function()
-                gunFired:FireServer(targetPos)
-            end)
-            Rayfield:Notify({
-                Title = "🔫 Tir !",
-                Content = "Tu as tiré sur " .. murderer.Name,
-                Duration = 1
-            })
-            return
-        end
-    end
-
-    -- === MÉTHODE 2 : Recherche générale de "GunFired" ===
-    local gunFired = game:GetService("ReplicatedStorage"):FindFirstChild("GunFired", true)
-    if gunFired and gunFired:IsA("RemoteEvent") then
-        pcall(function()
-            gunFired:FireServer(targetPos)
-        end)
-        Rayfield:Notify({
-            Title = "🔫 Tir !",
-            Content = "Tu as tiré sur " .. murderer.Name,
-            Duration = 1
-        })
+    if not onScreen then
+        Rayfield:Notify({ Title = "❌ Hors écran", Content = "Le murderer n'est pas visible", Duration = 2 })
         return
     end
 
-    -- === MÉTHODE 3 : FALLBACK (orientation invisible + Activate/Deactivate) ===
-    local playerHRP = player.Character:FindFirstChild("HumanoidRootPart")
-    if playerHRP then
-        playerHRP.CFrame = CFrame.lookAt(playerHRP.Position, targetPos)
-    end
-    gun:Activate()
-    task.wait(0.05)
-    gun:Deactivate()
+    -- === AUTO-AIM (invisible) ===
+    -- 1. Déplacer le curseur sur le murderer
+    local mouse = player:GetMouse()
+    mouse.X = screenPos.X
+    mouse.Y = screenPos.Y
+    
+    -- 2. Simuler un clic gauche (le jeu tire là où est le curseur)
+    task.wait(0.02)
+    mouse1click()
 
     Rayfield:Notify({
-        Title = "🔫 Tir (fallback)",
+        Title = "🔫 Tir !",
         Content = "Tu as tiré sur " .. murderer.Name,
         Duration = 1
     })
